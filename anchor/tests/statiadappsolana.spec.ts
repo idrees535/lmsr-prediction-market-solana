@@ -1,76 +1,57 @@
 import * as anchor from '@coral-xyz/anchor'
 import {Program} from '@coral-xyz/anchor'
-import {Keypair} from '@solana/web3.js'
-import {Statiadappsolana} from '../target/types/statiadappsolana'
+import {Keypair,PublicKey} from '@solana/web3.js'
+import {PredictionMarket} from '../target/types/PredictionMarket'
 
-describe('statiadappsolana', () => {
-  // Configure the client to use the local cluster.
-  const provider = anchor.AnchorProvider.env()
-  anchor.setProvider(provider)
-  const payer = provider.wallet as anchor.Wallet
+const provider = anchor.AnchorProvider.local();
+  anchor.setProvider(provider);
 
-  const program = anchor.workspace.Statiadappsolana as Program<Statiadappsolana>
+  const program = anchor.workspace.PredictionMarket as Program<PredictionMarket>;
 
-  const statiadappsolanaKeypair = Keypair.generate()
+  it("Can create a market", async () => {
+    // Generate a new keypair for the user
+    const user = Keypair.generate();
 
-  it('Initialize Statiadappsolana', async () => {
-    await program.methods
-      .initialize()
+    // Airdrop SOL to user
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(user.publicKey, 2_000_000_000),
+    );
+
+    // Create a dummy mint as base token mint
+    // For testing, just use a random key. In production, you'd create or pass a real SPL token mint.
+    const baseTokenMint = Keypair.generate();
+    
+    // PDAs often determined by seeds, but here we rely on init account only.
+    let [marketPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("market"), new anchor.BN(12345).toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+
+    const tx = await program.methods
+      .createMarket(
+        new anchor.BN(12345),           // market_id
+        "My Test Market",               // title
+        ["Outcome1", "Outcome2"],       // outcomes
+        new PublicKey("11111111111111111111111111111111"), // dummy oracle
+        new anchor.BN(5),               // b
+        new anchor.BN(3600),            // duration (1 hour)
+        new anchor.BN(2),               // fee_percent
+        new PublicKey("11111111111111111111111111111111"), // fee_recipient dummy
+        new anchor.BN(1000)             // initial_funds
+      )
       .accounts({
-        statiadappsolana: statiadappsolanaKeypair.publicKey,
-        payer: payer.publicKey,
+        market: marketPDA,
+        user: user.publicKey,
+        baseTokenMint: baseTokenMint.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId as PublicKey,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY
       })
-      .signers([statiadappsolanaKeypair])
-      .rpc()
+      .signers([user])
+      .rpc();
 
-    const currentCount = await program.account.statiadappsolana.fetch(statiadappsolanaKeypair.publicKey)
+    console.log("Your transaction signature", tx);
 
-    expect(currentCount.count).toEqual(0)
-  })
-
-  it('Increment Statiadappsolana', async () => {
-    await program.methods.increment().accounts({ statiadappsolana: statiadappsolanaKeypair.publicKey }).rpc()
-
-    const currentCount = await program.account.statiadappsolana.fetch(statiadappsolanaKeypair.publicKey)
-
-    expect(currentCount.count).toEqual(1)
-  })
-
-  it('Increment Statiadappsolana Again', async () => {
-    await program.methods.increment().accounts({ statiadappsolana: statiadappsolanaKeypair.publicKey }).rpc()
-
-    const currentCount = await program.account.statiadappsolana.fetch(statiadappsolanaKeypair.publicKey)
-
-    expect(currentCount.count).toEqual(2)
-  })
-
-  it('Decrement Statiadappsolana', async () => {
-    await program.methods.decrement().accounts({ statiadappsolana: statiadappsolanaKeypair.publicKey }).rpc()
-
-    const currentCount = await program.account.statiadappsolana.fetch(statiadappsolanaKeypair.publicKey)
-
-    expect(currentCount.count).toEqual(1)
-  })
-
-  it('Set statiadappsolana value', async () => {
-    await program.methods.set(42).accounts({ statiadappsolana: statiadappsolanaKeypair.publicKey }).rpc()
-
-    const currentCount = await program.account.statiadappsolana.fetch(statiadappsolanaKeypair.publicKey)
-
-    expect(currentCount.count).toEqual(42)
-  })
-
-  it('Set close the statiadappsolana account', async () => {
-    await program.methods
-      .close()
-      .accounts({
-        payer: payer.publicKey,
-        statiadappsolana: statiadappsolanaKeypair.publicKey,
-      })
-      .rpc()
-
-    // The account should no longer exist, returning null.
-    const userAccount = await program.account.statiadappsolana.fetchNullable(statiadappsolanaKeypair.publicKey)
-    expect(userAccount).toBeNull()
-  })
-})
+    const marketAccount = await program.account.market.fetch(marketPDA);
+    console.log("Market Account:", marketAccount);
+  });

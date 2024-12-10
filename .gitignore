@@ -2,6 +2,12 @@
 
 # dependencies
 /node_modules
+test-ledger/
+test-ledger
+/test-ledger
+solidity-reference-contracts/
+solidity-reference-contracts
+/solidity-reference-contracts/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
