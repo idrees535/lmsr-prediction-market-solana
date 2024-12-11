@@ -1,3 +1,5 @@
+
+
 #![allow(clippy::result_large_err)]
 
 use anchor_lang::prelude::*;
@@ -10,7 +12,8 @@ use solana_program::program_pack::Pack;
 use solana_program::entrypoint::ProgramResult;
 
 use crate::state::market::Market; // Import Market from the state/market.rs file
-use crate::state::outcome::Outcome; // Import Outcome from state/outcome.rs
+use crate::state::outcome::Outcome;
+use crate::error::CustomError;  // Import Outcome from state/outcome.rs
 
 pub mod constants;
 pub mod error;
@@ -105,7 +108,7 @@ pub mod prediction_market {
 
         Ok(())
     }
-}
+}       
 
 // Define the CreateMarket instruction
 #[derive(Accounts)]
@@ -134,19 +137,6 @@ pub struct CreateMarket<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-#[error_code]
-pub enum CustomError {
-    #[msg("At least one outcome is required")]
-    NoOutcomes,
-    #[msg("Liquidity parameter b must be greater than zero")]
-    InvalidB,
-    #[msg("Duration must be positive")]
-    InvalidDuration,
-    #[msg("Invalid owner for the mint account.")]
-    InvalidOwner,
-    #[msg("Invalid mint account.")]
-    InvalidMint,
-}
 
 /*
     pub fn buy_shares(ctx: Context<BuyShares>, outcome_index: u8, num_shares: u64) -> Result<()> {

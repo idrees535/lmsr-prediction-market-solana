@@ -8,4 +8,8 @@ pub enum CustomError {
     InvalidB,
     #[msg("Duration must be positive")]
     InvalidDuration,
+    #[msg("Invalid owner for the mint account.")]
+    InvalidOwner,
+    #[msg("Invalid mint account.")]
+    InvalidMint,
 }
