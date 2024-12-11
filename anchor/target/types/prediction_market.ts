@@ -14,6 +14,51 @@ export type PredictionMarket = {
   },
   "instructions": [
     {
+      "name": "buyShares",
+      "discriminator": [
+        40,
+        239,
+        138,
+        154,
+        8,
+        37,
+        106,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "buyerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "marketTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "buyer",
+          "signer": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "outcomeIndex",
+          "type": "u64"
+        },
+        {
+          "name": "numShares",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "createMarket",
       "discriminator": [
         103,
@@ -152,6 +197,66 @@ export type PredictionMarket = {
       "code": 6004,
       "name": "invalidMint",
       "msg": "Invalid mint account."
+    },
+    {
+      "code": 6005,
+      "name": "marketClosed",
+      "msg": "Market is closed"
+    },
+    {
+      "code": 6006,
+      "name": "invalidOutcome",
+      "msg": "Invalid outcome index"
+    },
+    {
+      "code": 6007,
+      "name": "invalidShares",
+      "msg": "Must buy at least one share"
+    },
+    {
+      "code": 6008,
+      "name": "overflow",
+      "msg": "Overflow occurred"
+    },
+    {
+      "code": 6009,
+      "name": "underflow",
+      "msg": "Underflow occurred"
+    },
+    {
+      "code": 6010,
+      "name": "mathError",
+      "msg": "Math error"
+    },
+    {
+      "code": 6011,
+      "name": "marketNotClosed",
+      "msg": "Market not closed yet"
+    },
+    {
+      "code": 6012,
+      "name": "marketAlreadySettled",
+      "msg": "Market already settled"
+    },
+    {
+      "code": 6013,
+      "name": "unauthorized",
+      "msg": "unauthorized"
+    },
+    {
+      "code": 6014,
+      "name": "noFeesToWithdraw",
+      "msg": "No fees to withdraw"
+    },
+    {
+      "code": 6015,
+      "name": "noSharesToClaim",
+      "msg": "No shares to claim"
+    },
+    {
+      "code": 6016,
+      "name": "insufficientFunds",
+      "msg": "Insufficient funds"
     }
   ],
   "types": [

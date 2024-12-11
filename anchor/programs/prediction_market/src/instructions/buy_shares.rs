@@ -4,7 +4,7 @@ use crate::state::market::Market;
 use crate::error::CustomError;
 use crate::utils::{calculate_cost, calculate_fee};
 use crate::constants::SHARES_DECIMALS;
-use crate::state::outcome::Outcome;
+//use crate::state::outcome::Outcome;
 
 pub fn handler(
     ctx: Context<BuyShares>,
@@ -18,12 +18,17 @@ pub fn handler(
     require!(outcome_index < market.outcomes.len() as u64, CustomError::InvalidOutcome);
     require!(num_shares > 0, CustomError::InvalidShares);
 
-    let outcome = &mut market.outcomes[outcome_index as usize];
+    // Validate that the buyer's token account mint matches the market's base token mint
+    require!(
+        ctx.accounts.buyer_token_account.mint == market.base_token_mint,
+        CustomError::InvalidMint
+    );
 
     // Calculate cost before purchase
     let q_before: Vec<u64> = market.outcomes.iter().map(|o| o.total_shares).collect();
     let cost_before = calculate_cost(&q_before, market.b)?;
 
+    let outcome = &mut market.outcomes[outcome_index as usize];
     // Update shares
     outcome.total_shares = outcome.total_shares.checked_add(num_shares).ok_or(CustomError::Overflow)?;
 
@@ -68,7 +73,7 @@ pub struct BuyShares<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    #[account(mut, has_one = base_token_mint)]
+    #[account(mut)]
     pub buyer_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]

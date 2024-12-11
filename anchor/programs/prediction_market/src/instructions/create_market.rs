@@ -3,6 +3,7 @@ use anchor_spl::token::{Token, spl_token};
 use crate::state::market::Market;
 use crate::state::outcome::Outcome;
 use crate::error::CustomError;
+use solana_program::program_pack::Pack;
 
 pub fn handler(
     ctx: Context<CreateMarket>,
