@@ -3,6 +3,7 @@ use crate::state::outcome::Outcome;
 
 
 #[account]
+//#[derive(InitSpace)]
 pub struct Market {
     pub market_id: u64,
     pub title: String,

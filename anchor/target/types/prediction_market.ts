@@ -2,7 +2,7 @@
  * Program IDL in camelCase format in order to be used in JS/TS.
  *
  * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/PredictionMarket.json`.
+ * IDL can be found at `target/idl/prediction_market.json`.
  */
 export type PredictionMarket = {
   "address": "AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ",
@@ -29,7 +29,25 @@ export type PredictionMarket = {
         {
           "name": "market",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "marketId"
+              }
+            ]
+          }
         },
         {
           "name": "user",
@@ -124,6 +142,16 @@ export type PredictionMarket = {
       "code": 6002,
       "name": "invalidDuration",
       "msg": "Duration must be positive"
+    },
+    {
+      "code": 6003,
+      "name": "invalidOwner",
+      "msg": "Invalid owner for the mint account."
+    },
+    {
+      "code": 6004,
+      "name": "invalidMint",
+      "msg": "Invalid mint account."
     }
   ],
   "types": [
