@@ -3,14 +3,16 @@ use crate::state::outcome::Outcome;
 
 
 #[account]
-//#[derive(InitSpace)]
+#[derive(InitSpace)]
 pub struct Market {
     pub market_id: u64,
+    #[max_len(50)]
     pub title: String,
     pub oracle: Pubkey,
     pub b: u64,
     pub fee_percent: u64,
     pub fee_recipient: Pubkey,
+    #[max_len(10,50)]
     pub outcomes: Vec<Outcome>,
     pub end_timestamp: i64,       
     pub market_closed: bool,

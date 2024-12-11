@@ -116,23 +116,7 @@ pub struct CreateMarket<'info> {
         seeds = [b"market", market_id.to_le_bytes().as_ref()],
         bump,
         payer = user,
-        space = 8 +  // Discriminator
-        8 +  // market_id
-        4 + 50 + // title (max length + 4 bytes for length prefix)
-        32 + // oracle
-        8 + // b
-        8 + // fee_percent
-        32 + // fee_recipient
-        // outcomes vector: depends on number of outcomes, handle in runtime
-        8 + // end_timestamp
-        1 + // market_closed (bool)
-        1 + // market_settled (bool)
-        8 + // winning_outcome
-        8 + // market_maker_funds
-        8 + // initial_funds
-        8 + // collected_fees
-        32   // base_token_mint
-        // Add buffer for dynamic outcomes
+        space = 8 +  Market::INIT_SPACE,  
     )]
     pub market: Account<'info, Market>,
 

@@ -1,18 +1,17 @@
 // Here we export some useful types and functions for interacting with the Anchor program.
 import { AnchorProvider, Program } from '@coral-xyz/anchor'
 import { Cluster, PublicKey } from '@solana/web3.js'
-import StatiadappsolanaIDL from '../target/idl/statiadappsolana.json'
-import type { Statiadappsolana } from '../target/types/statiadappsolana'
-
+import StatiadappsolanaIDL from '../target/idl/prediction_market.json'
+import type { PredictionMarket } from '../target/types/prediction_market'
 // Re-export the generated IDL and type
-export { Statiadappsolana, StatiadappsolanaIDL }
+export { PredictionMarket, StatiadappsolanaIDL }
 
 // The programId is imported from the program IDL.
 export const STATIADAPPSOLANA_PROGRAM_ID = new PublicKey(StatiadappsolanaIDL.address)
 
 // This is a helper function to get the Statiadappsolana Anchor program.
 export function getStatiadappsolanaProgram(provider: AnchorProvider) {
-  return new Program(StatiadappsolanaIDL as Statiadappsolana, provider)
+  return new Program(StatiadappsolanaIDL as PredictionMarket, provider)
 }
 
 // This is a helper function to get the program ID for the Statiadappsolana program depending on the cluster.
