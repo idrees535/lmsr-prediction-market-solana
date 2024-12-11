@@ -155,6 +155,47 @@ export type PredictionMarket = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "sellShares",
+      "discriminator": [
+        184,
+        164,
+        169,
+        16,
+        231,
+        158,
+        199,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "marketTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "outcomeIndex",
+          "type": "u64"
+        },
+        {
+          "name": "numShares",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [

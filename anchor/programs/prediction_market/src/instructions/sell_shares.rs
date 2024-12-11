@@ -4,13 +4,15 @@ use crate::state::market::Market;
 use crate::error::CustomError;
 use crate::utils::{calculate_cost, calculate_fee};
 use crate::constants::SHARES_DECIMALS;
-use crate::state::outcome::Outcome;
 
 pub fn handler(
     ctx: Context<SellShares>,
     outcome_index: u64,
     num_shares: u64,
 ) -> Result<()> {
+
+    let market_info = ctx.accounts.market.to_account_info();
+
     let market = &mut ctx.accounts.market;
 
     // Validations
@@ -18,15 +20,16 @@ pub fn handler(
     require!(outcome_index < market.outcomes.len() as u64, CustomError::InvalidOutcome);
     require!(num_shares > 0, CustomError::InvalidShares);
 
-    let outcome = &mut market.outcomes[outcome_index as usize];
 
     // Ensure user has enough shares (Implement share tracking)
-    // For simplicity, assume shares are tracked in TokenAccount balances
+   
 
     // Calculate cost before selling
     let q_before: Vec<u64> = market.outcomes.iter().map(|o| o.total_shares).collect();
     let cost_before = calculate_cost(&q_before, market.b)?;
 
+     let outcome = &mut market.outcomes[outcome_index as usize];
+    
     // Update shares
     outcome.total_shares = outcome.total_shares.checked_sub(num_shares).ok_or(CustomError::Underflow)?;
 
@@ -50,7 +53,7 @@ pub fn handler(
     let cpi_accounts = Transfer {
         from: ctx.accounts.market_token_account.to_account_info(),
         to: ctx.accounts.seller_token_account.to_account_info(),
-        authority: ctx.accounts.market.to_account_info(), // Must be a signer or PDA
+        authority: market_info, // Must be a signer or PDA
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
@@ -71,7 +74,7 @@ pub struct SellShares<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    #[account(mut, has_one = base_token_mint)]
+    #[account(mut)]
     pub seller_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
