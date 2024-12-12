@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::Mint;
 use crate::state::market::Market;
 use crate::error::CustomError;
 use crate::utils::{calculate_cost, calculate_fee};
@@ -19,10 +21,16 @@ pub fn handler(
     require!(num_shares > 0, CustomError::InvalidShares);
 
     // Validate that the buyer's token account mint matches the market's base token mint
-    require!(
-        ctx.accounts.buyer_token_account.mint == market.base_token_mint,
-        CustomError::InvalidMint
-    );
+    // require!(
+    //     ctx.accounts.buyer_token_account.mint == market.base_token_mint,
+    //     CustomError::InvalidMint
+    // );
+//msg!("Derived Buyer Token Account: {}", ctx.accounts.buyer_token_account.key());
+msg!("Derived Market Token Account: {}", ctx.accounts.market_token_account.key());
+msg!("Market Base Token Mint: {}", market.base_token_mint);
+msg!("Instruction Base Token Mint: {}", ctx.accounts.base_token_mint.key());
+
+
 
     // Calculate cost before purchase
     let q_before: Vec<u64> = market.outcomes.iter().map(|o| o.total_shares).collect();
@@ -73,13 +81,39 @@ pub struct BuyShares<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    #[account(mut)]
+    //#[account(mut)]
+    #[account(
+        //mut,
+        init_if_needed,
+        payer = buyer,
+        associated_token::mint = base_token_mint,
+        associated_token::authority = buyer
+    )]
     pub buyer_token_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
+    //#[account(mut)]
+    #[account(
+        //mut,
+        init_if_needed,
+        payer = buyer,
+        associated_token::mint = base_token_mint,
+        associated_token::authority = market
+    )]
     pub market_token_account: Account<'info, TokenAccount>,
 
+    #[account(mut)]
     pub buyer: Signer<'info>,
 
+    #[account(
+        constraint = base_token_mint.key() == market.base_token_mint,
+        address = market.base_token_mint
+    )]
+    pub base_token_mint: Account<'info, Mint>,
+
+   // #[account(address = anchor_spl::token::ID)]
     pub token_program: Program<'info, Token>,
+
+    //#[account(address = anchor_spl::associated_token::ID)]
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
 }

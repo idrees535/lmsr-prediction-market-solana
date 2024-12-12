@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, spl_token};
+//use anchor_spl::token_interface::Mint;
+use anchor_spl::token::{Mint};
 use crate::state::market::Market;
 use crate::state::outcome::Outcome;
 use crate::error::CustomError;
@@ -23,10 +25,10 @@ pub fn handler(
     require!(outcomes.len() > 0, CustomError::NoOutcomes);
     require!(b > 0, CustomError::InvalidB);
     require!(duration > 0, CustomError::InvalidDuration);
-    require!(
-        *ctx.accounts.base_token_mint.owner == spl_token::ID,
-        CustomError::InvalidOwner
-    );
+    // require!(
+    //     *ctx.accounts.base_token_mint.owner == spl_token::ID,
+    //     CustomError::InvalidOwner
+    // );
 
     require!(
         ctx.accounts.base_token_mint.to_account_info().data_len() == spl_token::state::Mint::LEN,
@@ -37,6 +39,7 @@ pub fn handler(
         &ctx.accounts.base_token_mint.to_account_info().data.borrow(),
     )?;
     msg!("Mint supply: {}", mint.supply);
+    msg!("Market Base Token Mint: {}", market.base_token_mint);
 
     market.market_id = market_id;
     market.title = title;
@@ -84,7 +87,10 @@ pub struct CreateMarket<'info> {
     pub user: Signer<'info>,
 
     ///CHECK: The base_token_mint is provided by the user. Checked at runtime.
-    pub base_token_mint: UncheckedAccount<'info>,
+    //pub base_token_mint: UncheckedAccount<'info>,
+
+    #[account(mint::token_program=token_program)]
+    pub base_token_mint: Account<'info, Mint>,
 
     #[account(address = anchor_lang::solana_program::system_program::ID)]
     pub system_program: Program<'info, System>,

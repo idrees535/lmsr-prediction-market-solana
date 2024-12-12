@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer, Burn};
 use crate::state::market::Market;
 use crate::error::CustomError;
 use crate::constants::TOKEN_DECIMALS;
+use crate::constants::PAYOUT_PER_SHARE;
 
 pub fn handler(
     ctx: Context<ClaimPayout>,
@@ -19,7 +20,7 @@ pub fn handler(
     require!(user_shares > 0, CustomError::NoSharesToClaim);
 
     // Calculate payout
-    let payout = user_shares.checked_mul(market.payout_per_share).ok_or(CustomError::Overflow)?;
+    let payout = user_shares.checked_mul(market.PAYOUT_PER_SHARE).ok_or(CustomError::Overflow)?;
 
     // Ensure market has sufficient funds
     require!(market.market_maker_funds >= payout, CustomError::InsufficientFunds);
