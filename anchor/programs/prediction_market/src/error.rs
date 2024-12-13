@@ -36,6 +36,16 @@ pub enum CustomError {
     NoSharesToClaim,
     #[msg("Insufficient funds")]
     InsufficientFunds,
+    #[msg("make it short assholde")]        
+    OutcomeNameTooLong,
+    #[msg("This is not fucking acceptable")] 
+    InvalidMintKey,
+     #[msg("Go, get them first")]
+    InsufficientShares,
+#[msg("Baz aa ja tou bahi")]
+    InvalidAccounts,
+    #[msg("Tou b madarchod")]
+    InvalidMintAuthority
     
    
 }

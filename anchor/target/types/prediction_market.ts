@@ -219,6 +219,99 @@ export type PredictionMarket = {
           "name": "baseTokenMint"
         },
         {
+          "name": "outcomeMint"
+        },
+        {
+          "name": "buyerShareAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcomeMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
@@ -339,47 +432,6 @@ export type PredictionMarket = {
           "type": "u64"
         }
       ]
-    },
-    {
-      "name": "sellShares",
-      "discriminator": [
-        184,
-        164,
-        169,
-        16,
-        231,
-        158,
-        199,
-        196
-      ],
-      "accounts": [
-        {
-          "name": "market",
-          "writable": true
-        },
-        {
-          "name": "sellerTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "marketTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "outcomeIndex",
-          "type": "u64"
-        },
-        {
-          "name": "numShares",
-          "type": "u64"
-        }
-      ]
     }
   ],
   "accounts": [
@@ -482,6 +534,31 @@ export type PredictionMarket = {
       "code": 6016,
       "name": "insufficientFunds",
       "msg": "Insufficient funds"
+    },
+    {
+      "code": 6017,
+      "name": "outcomeNameTooLong",
+      "msg": "make it short assholde"
+    },
+    {
+      "code": 6018,
+      "name": "invalidMintKey",
+      "msg": "This is not fucking acceptable"
+    },
+    {
+      "code": 6019,
+      "name": "insufficientShares",
+      "msg": "Go, get them first"
+    },
+    {
+      "code": 6020,
+      "name": "invalidAccounts",
+      "msg": "Baz aa ja tou bahi"
+    },
+    {
+      "code": 6021,
+      "name": "invalidMintAuthority",
+      "msg": "Tou b madarchod"
     }
   ],
   "types": [

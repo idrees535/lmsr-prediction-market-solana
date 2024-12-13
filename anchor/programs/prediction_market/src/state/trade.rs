@@ -1,0 +1,1 @@
+//implment a trade account which will store the cost for number of sahres bought and payemnt for shares sold

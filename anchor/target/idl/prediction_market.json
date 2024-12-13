@@ -213,6 +213,99 @@
           "name": "base_token_mint"
         },
         {
+          "name": "outcome_mint"
+        },
+        {
+          "name": "buyer_share_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
@@ -333,47 +426,6 @@
           "type": "u64"
         }
       ]
-    },
-    {
-      "name": "sell_shares",
-      "discriminator": [
-        184,
-        164,
-        169,
-        16,
-        231,
-        158,
-        199,
-        196
-      ],
-      "accounts": [
-        {
-          "name": "market",
-          "writable": true
-        },
-        {
-          "name": "seller_token_account",
-          "writable": true
-        },
-        {
-          "name": "market_token_account",
-          "writable": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "outcome_index",
-          "type": "u64"
-        },
-        {
-          "name": "num_shares",
-          "type": "u64"
-        }
-      ]
     }
   ],
   "accounts": [
@@ -476,6 +528,31 @@
       "code": 6016,
       "name": "InsufficientFunds",
       "msg": "Insufficient funds"
+    },
+    {
+      "code": 6017,
+      "name": "OutcomeNameTooLong",
+      "msg": "make it short assholde"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidMintKey",
+      "msg": "This is not fucking acceptable"
+    },
+    {
+      "code": 6019,
+      "name": "InsufficientShares",
+      "msg": "Go, get them first"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidAccounts",
+      "msg": "Baz aa ja tou bahi"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidMintAuthority",
+      "msg": "Tou b madarchod"
     }
   ],
   "types": [

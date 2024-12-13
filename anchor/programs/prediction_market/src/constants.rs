@@ -5,3 +5,5 @@ pub const SHARES_DECIMALS: u32 = 10;
 pub const TOKEN_DECIMALS: u32 = 18;
 
 pub const PAYOUT_PER_SHARE: u64 = 1000000000;
+
+pub const SCALE: u64 = 1000000;

@@ -16,8 +16,8 @@ declare_id!("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
 pub mod prediction_market {
     use super::*;
 
-    pub fn create_market(
-        ctx: Context<CreateMarket>,
+    pub fn create_market<'info>(
+        ctx: Context<'_, '_, '_, 'info,CreateMarket<'info>>,
         market_id: u64,
         title: String,
         outcomes: Vec<String>,
@@ -42,18 +42,22 @@ pub mod prediction_market {
         )
     }
 
+
+
     pub fn buy_shares(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> Result<()> {
         instructions::buy_shares::handler(ctx, outcome_index, num_shares)
     }
 
-    pub fn sell_shares(
-        ctx: Context<SellShares>,
-        outcome_index: u64,
-        num_shares: u64,
-    ) -> Result<()> {
-        instructions::sell_shares::handler(ctx, outcome_index, num_shares)
-    }
+    // pub fn sell_shares(
+    //     ctx: Context<SellShares>,
+    //     outcome_index: u64,
+    //     num_shares: u64,
+    // ) -> Result<()> {
+    //     instructions::sell_shares::handler(ctx, outcome_index, num_shares)
+    // }
+
 }
+
 
 /*
 

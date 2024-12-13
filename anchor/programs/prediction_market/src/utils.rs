@@ -2,18 +2,27 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, Mint, InitializeMint};
 use solana_program::pubkey::Pubkey;
 use crate::error::CustomError;
+use crate::constants::SCALE;
 
 /// Calculates the cost based on LMSR formula
 pub fn calculate_cost(q: &Vec<u64>, b: u64) -> Result<u64> {
-    // Implement the LMSR cost calculation using integer arithmetic
-    // Since Rust doesn't have a built-in fixed-point library in the standard library,
-    // you'll need to simulate fixed-point by scaling numbers appropriately.
-    // For simplicity, let's assume b is scaled appropriately.
+    // Use a fixed-point multiplier to simulate exponentiation.
+    let mut sum = 0u64;
 
-    // Placeholder implementation: sum of shares
-    let sum: u64 = q.iter().sum();
-    Ok(sum * b)
+    for &qi in q.iter() {
+        // Calculate e^(q_i / b) using fixed-point arithmetic.
+        let exponent = (qi as f64) / (b as f64); // q_i / b
+        let cost_for_outcome = (exponent.exp() * SCALE as f64).round() as u64; // e^(q_i / b) * SCALE
+        sum = sum.checked_add(cost_for_outcome).ok_or(CustomError::Overflow)?;
+    }
+
+    // Multiply by b (after scaling).
+    let total_cost = sum.checked_mul(b).ok_or(CustomError::Overflow)?;
+
+    // Return the total cost, considering the scale.
+    Ok(total_cost / SCALE)
 }
+
 
 /// Calculates the fee based on cost and fee percent
 pub fn calculate_fee(cost: u64, fee_percent: u64) -> Result<u64> {

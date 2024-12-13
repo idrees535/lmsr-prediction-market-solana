@@ -107,6 +107,48 @@ it("Can create a market", async () => {
   console.log("User Public Key:", user.publicKey.toBase58());
   console.log("Base Token Mint Public Key:", baseTokenMint.publicKey.toBase58());
 
+
+  
+  // Create outcome mints
+  const outcomes = ["Outcome1", "Outcome2"];
+  const outcomeMints = await Promise.all(
+    outcomes.map(async () => {
+      const outcomeMint = Keypair.generate();
+      const outcomeMintTransaction = new Transaction().add(
+        SystemProgram.createAccount({
+          fromPubkey: user.publicKey,
+          newAccountPubkey: outcomeMint.publicKey,
+          space: splToken.MINT_SIZE,
+          lamports: await provider.connection.getMinimumBalanceForRentExemption(splToken.MINT_SIZE),
+          programId: splToken.TOKEN_PROGRAM_ID,
+        }),
+        splToken.createInitializeMintInstruction(
+          outcomeMint.publicKey,
+          0, // Decimals
+          user.publicKey, // Mint authority
+          null // Freeze authority
+        )
+      );
+
+      if (provider.sendAndConfirm) {
+        await provider.sendAndConfirm(outcomeMintTransaction, [user, outcomeMint]);
+      } else {
+        throw new Error("sendAndConfirm method is not available on BankrunProvider");
+      }
+      return outcomeMint;
+    })
+  );
+
+  console.log("Outcome Mint Addresses:", outcomeMints.map(mint => mint.publicKey.toBase58()));
+
+  const remainingAccounts = outcomeMints.map((mint) => ({
+    pubkey: mint.publicKey,
+    isWritable: true,
+    isSigner: false,
+  }));
+
+
+
   const accounts: any = {
     market: marketPDA,
     user: user.publicKey,
@@ -129,6 +171,7 @@ it("Can create a market", async () => {
       new anchor.BN(1000)             // initial_funds
     )
     .accounts(accounts)
+    .remainingAccounts(remainingAccounts)
     .signers([user])
     .rpc();
 
