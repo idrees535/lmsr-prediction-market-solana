@@ -165,11 +165,11 @@ pub struct BuyShares<'info> {
     pub outcome_mint: Account<'info, Mint>,
     
     #[account(
-      // mut,
-         init_if_needed,
-         payer = buyer,
-         associated_token::mint = outcome_mint,
-         associated_token::authority = buyer
+       mut,
+         //init_if_needed,
+         //payer = buyer,
+         //associated_token::mint = outcome_mint,
+         //associated_token::authority = buyer
      )]
     pub buyer_share_account: Account<'info, TokenAccount>,
 

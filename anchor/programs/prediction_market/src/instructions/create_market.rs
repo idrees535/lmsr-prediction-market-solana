@@ -94,10 +94,17 @@ pub fn handler<'info>(
                         rent: ctx.accounts.rent.to_account_info(),
                     },
                 ),
-                SHARES_DECIMALS.try_into().unwrap(), // Decimals set to 0 for indivisible shares
+                SHARES_DECIMALS.try_into().unwrap(), 
                 &market.to_account_info().key(),
                 None, // Freeze authority
             )?;
+            // Print the mint authority after initialization
+        //let mint_state = spl_token::state::Mint::unpack(&outcome_mint.data.borrow())?;
+        // msg!(
+        //     "Outcome Mint Initialized: {} with Mint Authority: {}",
+        //     outcome_mint.key(),
+        //     mint_state.mint_authority.unwrap()
+        // );
         }
 
         // Add the outcome to the market
