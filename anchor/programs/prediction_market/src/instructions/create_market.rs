@@ -1,15 +1,15 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, spl_token, InitializeMint, Token};
 //use anchor_spl::token_interface::Mint;
-use anchor_spl::token::{Mint};
 use crate::constants::SHARES_DECIMALS;
+use crate::error::CustomError;
 use crate::state::market::Market;
 use crate::state::outcome::Outcome;
-use crate::error::CustomError;
+use anchor_spl::token::Mint;
 use solana_program::program_pack::Pack;
 
 pub fn handler<'info>(
-    ctx: Context<'_, '_, '_, 'info,CreateMarket<'info>>,
+    ctx: Context<'_, '_, '_, 'info, CreateMarket<'info>>,
     market_id: u64,
     title: String,
     outcomes: Vec<String>,
@@ -33,14 +33,11 @@ pub fn handler<'info>(
         CustomError::InvalidMint
     );
 
-    let mint = spl_token::state::Mint::unpack(
-       &base_token_mint_info.data.borrow(),
-    )?;
+    let mint = spl_token::state::Mint::unpack(&base_token_mint_info.data.borrow())?;
     msg!("Mint supply: {}", mint.supply);
     msg!("Market Base Token Mint: {}", market.base_token_mint);
 
-   
-    let bump = ctx.bumps.market; 
+    let bump = ctx.bumps.market;
     market.bump = bump;
 
     market.market_id = market_id;
@@ -70,31 +67,38 @@ pub fn handler<'info>(
         let outcome_mint = &remaining_accounts[i].clone();
         msg!("Outcome Mint: {}", outcome_mint.key());
         require!(
-    *outcome_mint.owner == spl_token::id(),
-    CustomError::InvalidMint
-);
+            *outcome_mint.owner == spl_token::id(),
+            CustomError::InvalidMint
+        );
 
-// Check if the mint account is already initialized
-    if spl_token::state::Mint::unpack(&outcome_mint.data.borrow()).is_ok() {
-        msg!("Outcome Mint already initialized: {}", outcome_mint.key());
-    } else {
-        msg!("Outcome mints not Initalized, Initializing it now: {}", outcome_mint.key());
-        
-        //Initialize the mint for the outcome
-        token::initialize_mint(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                InitializeMint {
-                    mint: outcome_mint.clone(),
-                    rent: ctx.accounts.rent.to_account_info(),
-                },
-            ),
-            2, // Decimals set to 0 for indivisible shares
-            &market.to_account_info().key(),
-            None, // Freeze authority
-        )?;
-        
-    }
+        // Check if the mint account is already initialized
+        if spl_token::state::Mint::unpack(&outcome_mint.data.borrow()).is_ok() {
+            msg!("Outcome Mint already initialized: {}", outcome_mint.key());
+            // should we allow an already initialized mint? Don't think so
+            // require!(
+            //     spl_token::state::Mint::unpack(&outcome_mint.data.borrow()).is_err(),
+            //     CustomError::MintAlreadyInitialized
+            //);
+        } else {
+            msg!(
+                "Outcome mints not Initalized, Initializing it now: {}",
+                outcome_mint.key()
+            );
+
+            //Initialize the mint for the outcome
+            token::initialize_mint(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    InitializeMint {
+                        mint: outcome_mint.clone(),
+                        rent: ctx.accounts.rent.to_account_info(),
+                    },
+                ),
+                SHARES_DECIMALS.try_into().unwrap(), // Decimals set to 0 for indivisible shares
+                &market.to_account_info().key(),
+                None, // Freeze authority
+            )?;
+        }
 
         // Add the outcome to the market
         market.outcomes.push(Outcome {
@@ -106,7 +110,6 @@ pub fn handler<'info>(
 
     Ok(())
 }
-
 
 #[derive(Accounts)]
 #[instruction(market_id: u64, title: String, outcomes: Vec<String>, oracle: Pubkey, b: u64, duration: i64, fee_percent: u64, fee_recipient: Pubkey, initial_funds: u64)]
@@ -123,10 +126,9 @@ pub struct CreateMarket<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-
     #[account(mint::token_program=token_program)]
     pub base_token_mint: Account<'info, Mint>,
-    
+
     #[account(address = anchor_lang::solana_program::system_program::ID)]
     pub system_program: Program<'info, System>,
 

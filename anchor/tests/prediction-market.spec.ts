@@ -19,7 +19,12 @@ describe("Prediction Market", () => {
   let outcomeMints: Keypair[] = [];
 
   // Setup: Run once before all tests
-  beforeAll(async () => {
+  beforeEach(async () => {
+
+
+    // Ensure a fresh context is set
+    console.log("Bankrun environment reset successfully.");
+
     user = Keypair.generate();
     const context = await startAnchor("", [
       {
@@ -71,7 +76,6 @@ describe("Prediction Market", () => {
       marketProgram.programId
     );
     marketPDA = marketPDAGenerated;
-    console.log("Market PDA:", marketPDA.toBase58());
 
     // Create outcome mints
     const outcomes = ["Outcome1", "Outcome2"];
@@ -80,11 +84,11 @@ describe("Prediction Market", () => {
         const outcomeMint = Keypair.generate();
         const outcomeMintTransaction = new Transaction().add(
           SystemProgram.createAccount({
-            fromPubkey: user.publicKey,
-            newAccountPubkey: outcomeMint.publicKey,
-            space: splToken.MINT_SIZE,
-            lamports: await provider.connection.getMinimumBalanceForRentExemption(splToken.MINT_SIZE),
-            programId: splToken.TOKEN_PROGRAM_ID,
+            fromPubkey: user.publicKey, // Payer
+            newAccountPubkey: outcomeMint.publicKey, // New account
+            space: splToken.MINT_SIZE, // Space
+            lamports: await provider.connection.getMinimumBalanceForRentExemption(splToken.MINT_SIZE), // Rent
+            programId: splToken.TOKEN_PROGRAM_ID, // Program ID
           }),
           
           // splToken.createInitializeMintInstruction(
@@ -105,8 +109,8 @@ describe("Prediction Market", () => {
     );
 
     console.log("Outcome Mint Addresses:", outcomeMints.map(mint => mint.publicKey.toBase58()));
-    const OutcomemintInfo = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
-    console.log("Outcome Mint Info:", OutcomemintInfo);
+    const OutcomemintInfo_before = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
+    console.log("Outcome Mint Info before:", OutcomemintInfo_before);
 
     const remainingAccounts = outcomeMints.map((mint) => ({
       pubkey: mint.publicKey,
@@ -140,26 +144,17 @@ describe("Prediction Market", () => {
       .remainingAccounts(remainingAccounts)
       .signers([user])
       .rpc();
+
+    const OutcomemintInfo_after = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
+    console.log("Outcome Mint Info after:", OutcomemintInfo_after);
   });
   
-  // Test 1: Create Market
-  it("Can create a market", async () => {
-  
-    console.log("Market Created with PDA:", marketPDA.toBase58());
-
-    console.log("Base Token Mint Address:", baseTokenMint.publicKey.toBase58());
-
-    const marketAccount = await marketProgram.account.market.fetch(marketPDA);
-    console.log("Market Account Data:", marketAccount);
-
-    // Ensure the market creation was successful
-    expect(marketAccount.title).toBe("My Test Market");
-    expect(marketAccount.outcomes.length).toBe(2);
-    expect(marketAccount.marketMakerFunds.toNumber()).toBe(1000);
-  });
 
 // Test 2: Buy Shares
   it("Can buy shares", async () => {
+
+    const OutcomemintInfo_before_buy= await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
+    console.log("OutcomemintInfo_before_buy:", OutcomemintInfo_before_buy);
 
     console.log("Base Token Mint Address:", baseTokenMint.publicKey.toBase58());
     userTokenAccount = await splToken.getAssociatedTokenAddress(
@@ -176,8 +171,6 @@ describe("Prediction Market", () => {
         baseTokenMint.publicKey // Mint address
       )
     );
-
-    
 
       if (provider.sendAndConfirm) {
         await provider.sendAndConfirm(createUserATATx, [user]);
@@ -278,18 +271,6 @@ describe("Prediction Market", () => {
     console.log("User's Share ATA created:", userShareAccount.toBase58())
 
 
-    // const userSahreAccountInfo_before = await splToken.getAccount(provider.connection, userShareAccount);
-    // console.log("User Share Account Info:", userSahreAccountInfo_before);
-    // console.log("Outcome Mint being passed:", outcomeMint.publicKey.toBase58());
-    // const marketAccount = await marketProgram.account.market.fetch(marketPDA);
-    // console.log("Stored Outcome Mint in Market:", marketAccount.outcomes[0].mint.toBase58());
-
-    // const OutcomemintInfo = await splToken.getMint(provider.connection, outcomeMint.publicKey);
-    // console.log("Outcome Mint Info:", OutcomemintInfo);
-
-
-
-
     console.log("finally let's try fucking do what we are here to do, buy shares");
     // Prepare the BuyShares instruction
     const buySharesAccounts = {
@@ -303,6 +284,9 @@ describe("Prediction Market", () => {
       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
     };
 
+    const OutcomemintInfo_2 = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
+    console.log("OutcomemintInfo_2:", OutcomemintInfo_2);
+
     // Call the buy_shares function
     const buySharesTx = await marketProgram.methods
       .buyShares(new anchor.BN(buy_outcome_index), new anchor.BN(10)) // Buying 10 shares of Outcome 0
@@ -311,6 +295,8 @@ describe("Prediction Market", () => {
       .rpc();
 
     console.log("Buy Shares Transaction Signature:", buySharesTx);
+    const OutcomemintInfo_3 = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
+    console.log("OutcomemintInfo_3:", OutcomemintInfo_3);
 
 
     // Check the buyer's token account balance

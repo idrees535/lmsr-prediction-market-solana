@@ -10,16 +10,35 @@ use anchor_spl::token::{spl_token, Mint};
 //use crate::state::outcome::Outcome;
 
 pub fn handler(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> Result<()> {
-    msg!("Buy Shares");
     let market = &mut ctx.accounts.market;
+
+   
+
+    let outcome_mint = &ctx.accounts.outcome_mint;
+     msg!("outcome_mint.mint_authority: {:?}", outcome_mint.mint_authority.unwrap());
+    let buyer_share_account = &ctx.accounts.buyer_share_account;
+     msg!("outcome_mint.mint_authority: {:?}", outcome_mint.mint_authority.unwrap());
     
-    // Validations
+    require!(
+        outcome_mint.mint_authority.unwrap() == market.key(),
+        CustomError::InvalidMintAuthority
+    );
+  
+    require!(
+        buyer_share_account.mint == outcome_mint.key(),
+        CustomError::InvalidMint
+    );
+    require!(
+        buyer_share_account.owner == ctx.accounts.buyer.key(),
+        CustomError::InvalidOwner
+    );
     require!(!market.market_closed, CustomError::MarketClosed);
     require!(
         outcome_index < market.outcomes.len() as u64,
         CustomError::InvalidOutcome
     );
     require!(num_shares > 0, CustomError::InvalidShares);
+
 
     // Calculate cost before purchase
     let q_before: Vec<u64> = market.outcomes.iter().map(|o| o.total_shares).collect();
@@ -51,8 +70,6 @@ pub fn handler(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> 
     let net_cost: u64 = cost.checked_add(fee_amount).ok_or(CustomError::Overflow)?;
 
 
-    msg!("transferring tokens form buyer to market");
-
     // Transfer tokens from buyer to market
     let cpi_accounts = Transfer {
         from: ctx.accounts.buyer_token_account.to_account_info(),
@@ -63,47 +80,10 @@ pub fn handler(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> 
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, net_cost)?;
 
+    msg!("Transferred amount: {} tokens from buyer account: {} to market account: {}", net_cost, ctx.accounts.buyer_token_account.key(), ctx.accounts.market_token_account.key());
+
 
     // Mint shares to the user's associated sahre token account
-    msg!("Minting shares to buyer share account");
-    let outcome_mint = &ctx.accounts.outcome_mint;
-    let buyer_share_account = &ctx.accounts.buyer_share_account;
-    
-
-     msg!(
-        "Outcome Mint Authority: {:?}",
-        outcome_mint.mint_authority.unwrap()
-    );
-    msg!("Market PDA (On-chain): {}", market.key());
-    
-
-    require!(
-        outcome_mint.mint_authority.unwrap() == market.key(),
-        CustomError::InvalidMintAuthority
-    );
-    msg!("Mint authority check passsed");
-     msg!("Buyer Share Account Mint: {}", buyer_share_account.mint);
-    msg!("Outcome Mint: {}", outcome_mint.key());
-   
-    require!(
-        buyer_share_account.mint == outcome_mint.key(),
-        CustomError::InvalidMint
-    );
-    msg!("Mint check passsed");
-    msg!("Buyer Share Account Owner: {}", buyer_share_account.owner);
-    msg!("Buyer: {}", ctx.accounts.buyer.key());
-    require!(
-        buyer_share_account.owner == ctx.accounts.buyer.key(),
-        CustomError::InvalidOwner
-    );
-     msg!("others also check passsed");
-
-
-    // let (pda, bump) = Pubkey::find_program_address(
-    //     &[b"market", market.market_id.to_le_bytes().as_ref()],
-    //     ctx.program_id,
-    // );
-
 
     let market_id_bytes: [u8; 8] = market.market_id.to_le_bytes();
     let seeds = &[b"market", &market_id_bytes[..], &[market.bump]];
@@ -124,20 +104,7 @@ pub fn handler(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> 
 
     token::mint_to(cpi_ctx, num_shares)?;
 
-    msg!("Shares minted to buyer share account");
-
-
-    ////
-    // let cpi_mint_to_accounts = MintTo {
-    //     mint: outcome_mint.to_account_info(),
-    //     to: buyer_share_account.to_account_info(),
-    //     authority: market.to_account_info(),
-    // };
-    // let cpi_mint_to_ctx = CpiContext::new(
-    //     ctx.accounts.token_program.to_account_info(),
-    //     cpi_mint_to_accounts,
-    // );
-    // token::mint_to(cpi_mint_to_ctx, num_shares)?;
+    msg!("Minted {} shares to buyer's share account: {}", num_shares, buyer_share_account.key());
 
     // Update market funds
     market.market_maker_funds = market
@@ -165,7 +132,6 @@ pub struct BuyShares<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-   
     #[account(
         init_if_needed,
         payer = buyer,
@@ -191,22 +157,22 @@ pub struct BuyShares<'info> {
     )]
     pub base_token_mint: Account<'info, Mint>,
 
-    
-    #[account(
+       #[account(
         mut,
-         //init_if_needed,
-        //  payer = buyer,
-        //  associated_token::mint = outcome_mint,
-        //  associated_token::authority = buyer
-     )]
-    pub buyer_share_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        // constraint = outcome_mint.key() == market.outcomes[outcome_index as usize].mint,
+        //constraint = outcome_mint.key() == market.outcomes[outcome_index as usize].mint,
         // address = market.outcomes[outcome_index as usize].mint
     )]
     pub outcome_mint: Account<'info, Mint>,
+    
+    #[account(
+      // mut,
+         init_if_needed,
+         payer = buyer,
+         associated_token::mint = outcome_mint,
+         associated_token::authority = buyer
+     )]
+    pub buyer_share_account: Account<'info, TokenAccount>,
+
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
