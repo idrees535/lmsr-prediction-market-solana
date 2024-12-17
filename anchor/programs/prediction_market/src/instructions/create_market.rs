@@ -39,6 +39,10 @@ pub fn handler<'info>(
     msg!("Mint supply: {}", mint.supply);
     msg!("Market Base Token Mint: {}", market.base_token_mint);
 
+   
+    let bump = ctx.bumps.market; 
+    market.bump = bump;
+
     market.market_id = market_id;
     market.title = title;
     market.oracle = oracle;
@@ -74,9 +78,9 @@ pub fn handler<'info>(
     if spl_token::state::Mint::unpack(&outcome_mint.data.borrow()).is_ok() {
         msg!("Outcome Mint already initialized: {}", outcome_mint.key());
     } else {
-        msg!("Initializing Outcome Mint: {}", outcome_mint.key());
+        msg!("Outcome mints not Initalized, Initializing it now: {}", outcome_mint.key());
         
-        // Initialize the mint for the outcome
+        //Initialize the mint for the outcome
         token::initialize_mint(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -85,10 +89,11 @@ pub fn handler<'info>(
                     rent: ctx.accounts.rent.to_account_info(),
                 },
             ),
-            0, // Decimals set to 0 for indivisible shares
+            2, // Decimals set to 0 for indivisible shares
             &market.to_account_info().key(),
             None, // Freeze authority
         )?;
+        
     }
 
         // Add the outcome to the market
@@ -101,53 +106,6 @@ pub fn handler<'info>(
 
     Ok(())
 }
-
-    
-     //This implemnation has this problem of |("Program log: Error: account or token already in use",)
-    // Initialize outcome mints and add outcomes to the market
-    // for outcome_name in outcomes.iter() {
-    //     // Create a new Mint for the outcome
-    //     let outcome_mint = &mut ctx.accounts.outcome_mint;
-    //     token::initialize_mint(
-    //         CpiContext::new(
-    //             ctx.accounts.token_program.to_account_info(),
-    //             InitializeMint {
-    //                 mint: outcome_mint.to_account_info(),
-    //                 rent: ctx.accounts.rent.to_account_info(),
-    //             },
-    //         ),
-    //         0, // Decimals set to 0 for indivisible shares
-    //         &market.to_account_info().key(),
-    //         None, // Freeze authority
-    //     )?;
-
-    //     // Add the outcome to the market
-    //     market.outcomes.push(Outcome {
-    //         name: outcome_name.clone(),
-    //         total_shares: 0,
-    //         mint: outcome_mint.key(),
-    //     });
-    // }
-
-//     Ok(())
-// }
-
-    /* 
-    //Without outcome accounts impmentaion which was working, but was not being able to mint tokens to users for buying shares
-    let mut outcomes_structs: Vec<Outcome> = Vec::with_capacity(outcomes.len());
-    for outcome_name in outcomes.iter() {
-        let dummy_mint = Pubkey::default();
-        outcomes_structs.push(Outcome {
-            name: outcome_name.clone(),
-            total_shares: 0,
-            mint: dummy_mint,
-        });
-    }
-    market.outcomes = outcomes_structs;
-    market.market_id = market_id;
-    Ok(())
-}
-*/
 
 
 #[derive(Accounts)]
@@ -168,9 +126,6 @@ pub struct CreateMarket<'info> {
 
     #[account(mint::token_program=token_program)]
     pub base_token_mint: Account<'info, Mint>,
-
-    // #[account(mut)]
-    // pub outcome_mint: Account<'info, Mint>,
     
     #[account(address = anchor_lang::solana_program::system_program::ID)]
     pub system_program: Program<'info, System>,

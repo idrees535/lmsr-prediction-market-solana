@@ -71,6 +71,7 @@ describe("Prediction Market", () => {
       marketProgram.programId
     );
     marketPDA = marketPDAGenerated;
+    console.log("Market PDA:", marketPDA.toBase58());
 
     // Create outcome mints
     const outcomes = ["Outcome1", "Outcome2"];
@@ -85,12 +86,13 @@ describe("Prediction Market", () => {
             lamports: await provider.connection.getMinimumBalanceForRentExemption(splToken.MINT_SIZE),
             programId: splToken.TOKEN_PROGRAM_ID,
           }),
-          splToken.createInitializeMintInstruction(
-            outcomeMint.publicKey,
-            0, // Decimals
-            user.publicKey, // Mint authority
-            null // Freeze authority
-          )
+          
+          // splToken.createInitializeMintInstruction(
+          //   outcomeMint.publicKey,
+          //   0, // Decimals
+          //   marketPDA, // Mint authority
+          //   null // Freeze authority
+          // )
         );
 
         if (provider.sendAndConfirm) {
@@ -103,6 +105,8 @@ describe("Prediction Market", () => {
     );
 
     console.log("Outcome Mint Addresses:", outcomeMints.map(mint => mint.publicKey.toBase58()));
+    const OutcomemintInfo = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
+    console.log("Outcome Mint Info:", OutcomemintInfo);
 
     const remainingAccounts = outcomeMints.map((mint) => ({
       pubkey: mint.publicKey,
@@ -157,15 +161,13 @@ describe("Prediction Market", () => {
 // Test 2: Buy Shares
   it("Can buy shares", async () => {
 
-    console.log ('Deriving users ATA')
+    console.log("Base Token Mint Address:", baseTokenMint.publicKey.toBase58());
     userTokenAccount = await splToken.getAssociatedTokenAddress(
       baseTokenMint.publicKey,
       user.publicKey
     );
 
-    console.log("User Token Account Address Derived:", userTokenAccount.toBase58());
-   
-    console.log("Creating user's Associated Token Account...");
+    console.log("Derived User Token Account Address:", userTokenAccount.toBase58());
     const createUserATATx = new Transaction().add(
       splToken.createAssociatedTokenAccountInstruction(
         user.publicKey,         // Payer
@@ -175,22 +177,21 @@ describe("Prediction Market", () => {
       )
     );
 
+    
+
       if (provider.sendAndConfirm) {
         await provider.sendAndConfirm(createUserATATx, [user]);
-        console.log('User ATA creation transaction sent');
       }
-      console.log("User's ATA created:", userTokenAccount.toBase58())
+      console.log("Craeted User's ATA:", userTokenAccount.toBase58())
     
-    console.log("Base Token Mint Address:", baseTokenMint.publicKey.toBase58());    
+        
     marketTokenAccount = await splToken.getAssociatedTokenAddress(
       baseTokenMint.publicKey,
       marketPDA,
       true // Allow off-curve PDA
     );
-    console.log('Market token account Derived');
-    console.log("Market Token Account Address:", marketTokenAccount.toBase58());
+    console.log("Derived Market Token Account Address:", marketTokenAccount.toBase58());
 
-    console.log("Creating market's Associated Token Account...");
     const createMarketATATx = new Transaction().add(
       splToken.createAssociatedTokenAccountInstruction(
         user.publicKey,         // Payer
@@ -202,21 +203,19 @@ describe("Prediction Market", () => {
 
     if (provider.sendAndConfirm) {
       await provider.sendAndConfirm(createMarketATATx, [user]);
-      console.log('market ATA creation transaction sent');
     }
-    console.log("market's ATA created:", marketTokenAccount.toBase58())
+    console.log("Craeted market's ATA:", marketTokenAccount.toBase58())
 
     // Mint tokens to the user's associated token account
     const mintInfo = await splToken.getMint(provider.connection, baseTokenMint.publicKey);
-    console.log("Mint Info:", mintInfo);
+    console.log("Base Token Mint Info:", mintInfo);
 
     const userAccountInfo = await splToken.getAccount(provider.connection, userTokenAccount);
     console.log("User Token Account Info:", userAccountInfo);
 
     const marketAccountInfo = await splToken.getAccount(provider.connection, marketTokenAccount);
-    console.log("market Token Account Info:", marketAccountInfo);
+    console.log("Market Token Account Info:", marketAccountInfo);
 
-    console.log("Minting tokens to buyer's ATA...");
      const mintTx = new anchor.web3.Transaction().add(
        splToken.createMintToInstruction(
          baseTokenMint.publicKey,
@@ -227,15 +226,12 @@ describe("Prediction Market", () => {
      );
      if (provider.sendAndConfirm) {
        await provider.sendAndConfirm(mintTx, [user]);
-       console.log("Minted tokens to buyer's ATT tx:",{mintTx});
      }
 
     console.log("Minted tokens to buyer's ATT");
     const userAccountInfo_after = await splToken.getAccount(provider.connection, userTokenAccount);
     console.log("User Token Account Info:", userAccountInfo_after);
 
-
-    console.log("transfer tokens to market's ATA...");
     const transferTx = new anchor.web3.Transaction().add(
       splToken.createTransferInstruction(
         userTokenAccount,
@@ -246,12 +242,11 @@ describe("Prediction Market", () => {
     );
     if (provider.sendAndConfirm) {
       await provider.sendAndConfirm(transferTx, [user]);
-      console.log("Transfer tokens to market's ATT tx:", { transferTx });
     }
 
-    console.log("Transfer tokens to market's ATT");
+    console.log("Transfer tokens to market's ATA");
     const marketAccountInfo_after = await splToken.getAccount(provider.connection, marketTokenAccount);
-    console.log("market Token Account Info:", marketAccountInfo_after);
+    console.log("Market Token Account Info:", marketAccountInfo_after);
 
     const userBalanceBefore = ((await splToken.getAccount(provider.connection, userTokenAccount)).amount);
     const marketBalanceBefore = ((await splToken.getAccount(provider.connection, marketTokenAccount)).amount);
@@ -259,12 +254,14 @@ describe("Prediction Market", () => {
     // Derive the user's associated token account for Outcome 0 shares
     const buy_outcome_index = 0;
     const outcomeMint = outcomeMints[buy_outcome_index];
+    console.log("Outcome Mint Address at index 0:", outcomeMint.publicKey.toBase58());
     const userShareAccount = await splToken.getAssociatedTokenAddress(
       outcomeMint.publicKey,
       user.publicKey
+    
     );
 
-    // Create the user's share ATA if it doesn't exist
+    //Create the user's share ATA if it doesn't exist
    
       const createUserShareATATx = new Transaction().add(
         splToken.createAssociatedTokenAccountInstruction(
@@ -277,13 +274,20 @@ describe("Prediction Market", () => {
 
     if (provider.sendAndConfirm) {
       await provider.sendAndConfirm(createUserShareATATx, [user]);
-      console.log('User share ATA creation transaction sent');
     }
-    console.log("User's ATA created:", userShareAccount.toBase58())
+    console.log("User's Share ATA created:", userShareAccount.toBase58())
 
 
-    const userSahreAccountInfo_before = await splToken.getAccount(provider.connection, userShareAccount);
-    console.log("User Sahre Token Account Info:", userSahreAccountInfo_before);
+    // const userSahreAccountInfo_before = await splToken.getAccount(provider.connection, userShareAccount);
+    // console.log("User Share Account Info:", userSahreAccountInfo_before);
+    // console.log("Outcome Mint being passed:", outcomeMint.publicKey.toBase58());
+    // const marketAccount = await marketProgram.account.market.fetch(marketPDA);
+    // console.log("Stored Outcome Mint in Market:", marketAccount.outcomes[0].mint.toBase58());
+
+    // const OutcomemintInfo = await splToken.getMint(provider.connection, outcomeMint.publicKey);
+    // console.log("Outcome Mint Info:", OutcomemintInfo);
+
+
 
 
     console.log("finally let's try fucking do what we are here to do, buy shares");
@@ -293,7 +297,7 @@ describe("Prediction Market", () => {
       buyerTokenAccount: userTokenAccount,
       marketTokenAccount: marketTokenAccount,
       outcomeMint: outcomeMint.publicKey,
-      userShareAccount: userShareAccount,
+      buyerShareAccount: userShareAccount,
       baseTokenMint: baseTokenMint.publicKey,
       buyer: user.publicKey,
       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
@@ -324,17 +328,25 @@ describe("Prediction Market", () => {
     console.log(`User balance diff: ${userBalanceBefore-userBalanceAfter}`);
     console.log(`market balance diff: ${marketBalanceAfter - marketBalanceBefore}`);
 
-    const marketAccount = await marketProgram.account.market.fetch(marketPDA);
+    const marketAccount1 = await marketProgram.account.market.fetch(marketPDA);
     // Access and log specific fields
-    console.log("Market Maker Funds:", marketAccount.marketMakerFunds.toNumber());
-    console.log("Collected Fees:", marketAccount.collectedFees.toNumber());
-    console.log("Total Shares for Outcome 0:", marketAccount.outcomes[0].totalShares.toNumber());
+    console.log("Market Maker Funds:", marketAccount1.marketMakerFunds.toNumber());
+    console.log("Collected Fees:", marketAccount1.collectedFees.toNumber());
+    console.log("Total Shares for Outcome 0:", marketAccount1.outcomes[0].totalShares.toNumber());
 
 
     // Add assertions to verify updates
-    expect(marketAccount.marketMakerFunds.toNumber()).toBeGreaterThan(0);
-    expect(marketAccount.collectedFees.toNumber()).toBeGreaterThan(0);
-    expect(marketAccount.outcomes[0].totalShares.toNumber()).toBe(10);
+    expect(marketAccount1.marketMakerFunds.toNumber()).toBeGreaterThan(0);
+    expect(marketAccount1.collectedFees.toNumber()).toBeGreaterThan(0);
+    expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(10);
+
+    //let's check the user's share account
+    const userShareAccountInfo_after = await splToken.getAccount(provider.connection, userShareAccount);
+    console.log("User's Share Token Account Info After Buy:", userShareAccountInfo_after);
+    expect(Number(userShareAccountInfo_after.amount)).toBe(10);
+    //let's also first print and then check total outcome shares
+    console.log("Total Shares for Outcome 0:", marketAccount1.outcomes[0].totalShares.toNumber());
+    expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(10);
     
   });
 });

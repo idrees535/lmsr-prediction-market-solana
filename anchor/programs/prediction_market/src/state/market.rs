@@ -21,5 +21,7 @@ pub struct Market {
     pub market_maker_funds: u64,
     pub initial_funds: u64,
     pub collected_fees: u64,
-    pub base_token_mint: Pubkey, 
+    pub base_token_mint: Pubkey,
+    pub bump: u8,
+    //pub outcome_mint: Pubkey, 
 }
