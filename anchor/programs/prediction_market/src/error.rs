@@ -48,4 +48,15 @@ pub enum CustomError {
     InvalidMintAuthority,
     #[msg("Tou b madarchod")]
     MintAlreadyInitialized,
+    
+
+    #[msg("Market is already closed")]
+    MarketAlreadyClosed,
+    #[msg("Market end time has not yet passed")]
+    MarketNotExpired,
+
+    #[msg("Market is not settled yet")]
+    MarketNotSettled,
+  
+
 }

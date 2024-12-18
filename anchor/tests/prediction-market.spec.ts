@@ -1,4 +1,5 @@
 import * as anchor from '@coral-xyz/anchor';
+import { Clock } from "solana-bankrun";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
 import { Program } from '@coral-xyz/anchor';
 import { SystemProgram, Keypair, Transaction, PublicKey, TransactionResponse, GetVersionedTransactionConfig } from '@solana/web3.js';
@@ -15,18 +16,23 @@ describe("Prediction Market", () => {
   let baseTokenMint: Keypair;
   let marketPDA: PublicKey;
   let userTokenAccount: PublicKey;
+  let userShareAccount: PublicKey;
   let marketTokenAccount: PublicKey;
   let outcomeMints: Keypair[] = [];
+  let oracle: Keypair;
+  let context: any;
+  let client: any;
 
   // Setup: Run once before all tests
-  beforeEach(async () => {
+  beforeAll(async () => {
 
 
     // Ensure a fresh context is set
     console.log("Bankrun environment reset successfully.");
 
     user = Keypair.generate();
-    const context = await startAnchor("", [
+    oracle= Keypair.generate();
+    context = await startAnchor("", [
       {
         name: 'prediction_market',
         programId: marketAddress,
@@ -43,6 +49,7 @@ describe("Prediction Market", () => {
         },
       ]);
 
+    client = context.banksClient;
     provider = new BankrunProvider(context);
     marketProgram = new Program<PredictionMarket>(IDL, provider);
 
@@ -133,7 +140,7 @@ describe("Prediction Market", () => {
         new anchor.BN(12345),           // market_id
         "My Test Market",               // title
         ["Outcome1", "Outcome2"],       // outcomes
-        user.publicKey,                 // dummy oracle
+        oracle.publicKey,                 // dummy oracle
         new anchor.BN(700),               // b
         new anchor.BN(3600),            // duration (1 hour)
         new anchor.BN(2),               // fee_percent
@@ -248,7 +255,7 @@ describe("Prediction Market", () => {
     const buy_outcome_index = 0;
     const outcomeMint = outcomeMints[buy_outcome_index];
     console.log("Outcome Mint Address at index 0:", outcomeMint.publicKey.toBase58());
-    const userShareAccount = await splToken.getAssociatedTokenAddress(
+    userShareAccount = await splToken.getAssociatedTokenAddress(
       outcomeMint.publicKey,
       user.publicKey
     
@@ -335,128 +342,113 @@ describe("Prediction Market", () => {
     expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(10);
     
   });
-});
-/*
-  // Test 3: Sell Shares
-  it("Can sell shares and update state correctly", async () => {
-    // Ensure the user has shares to sell
-    const sellerShareAccount = await splToken.getAssociatedTokenAddress(
-      outcomeMints[0],
-      user.publicKey
-    );
-    const sellerShareAccountInfoBefore = await splToken.getAccount(provider.connection, sellerShareAccount);
-    console.log("Seller's Share Token Account Info Before Sell:", sellerShareAccountInfoBefore);
-    expect(sellerShareAccountInfoBefore.amount.toNumber()).toBeGreaterThanOrEqual(10);
 
-    // Capture user and market balances before selling
+  // Test 3: Sell Shares
+  it("Can sell shares", async () => {
+    const sell_outcome_index = 0;
+    const outcomeMint = outcomeMints[sell_outcome_index];
+    const userShareAccount = await splToken.getAssociatedTokenAddress(outcomeMint.publicKey, user.publicKey);
+
     const userBalanceBefore = (await splToken.getAccount(provider.connection, userTokenAccount)).amount;
     const marketBalanceBefore = (await splToken.getAccount(provider.connection, marketTokenAccount)).amount;
 
-    console.log(`User balance before selling: ${userBalanceBefore}`);
-    console.log(`Market balance before selling: ${marketBalanceBefore}`);
-
-    // Prepare the SellShares instruction
+    // Setup accounts for sell_shares
     const sellSharesAccounts = {
       market: marketPDA,
-      seller_token_account: userTokenAccount,
-      market_token_account: marketTokenAccount,
-      seller_share_account: sellerShareAccount,
-      base_token_mint: baseTokenMint.publicKey,
-      outcome_mint: outcomeMints[0],
+      buyerShareAccount: userShareAccount,
+      outcomeMint: outcomeMint.publicKey,
+      sellerTokenAccount: userTokenAccount,
+      marketTokenAccount: marketTokenAccount,
       seller: user.publicKey,
-      token_program: splToken.TOKEN_PROGRAM_ID,
-      associated_token_program: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-      system_program: SystemProgram.programId,
+      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
     };
 
     // Call the sell_shares function
     const sellSharesTx = await marketProgram.methods
-      .sellShares(new anchor.BN(0), new anchor.BN(5)) // Selling 5 shares of Outcome 0
+      .sellShares(new anchor.BN(sell_outcome_index), new anchor.BN(7)) // Selling 5 shares of Outcome 0
       .accounts(sellSharesAccounts)
       .signers([user])
       .rpc();
 
     console.log("Sell Shares Transaction Signature:", sellSharesTx);
 
-    // Fetch the transaction to capture logs
-    const tx = await provider.connection.getTransaction(sellSharesTx, { commitment: "confirmed" });
-    if (tx?.meta?.logMessages) {
-      tx.meta.logMessages.forEach(log => {
-        if (log.includes("Cost After Selling:")) {
-          console.log("Cost After Selling (Log):", log);
-        }
-        if (log.includes("Cost Before Selling:")) {
-          console.log("Cost Before Selling (Log):", log);
-        }
-        if (log.includes("Fee Amount:")) {
-          console.log("Fee Amount (Log):", log);
-        }
-        if (log.includes("Shares Sold:")) {
-          console.log("Shares Sold (Log):", log);
-        }
-      });
-    }
-
-    // Fetch updated market account
-    const marketAccountAfter = await marketProgram.account.market.fetch(marketPDA);
-    console.log("Market Account After Sell:", marketAccountAfter);
-
-    // Calculate expected cost using LMSR formula
-    const q_after_sell = marketAccountAfter.outcomes.map(o => o.total_shares.toNumber());
-    const b = marketAccountAfter.b.toNumber();
-    const sum_exp_after_sell = q_after_sell.reduce((acc, cur) => acc + Math.exp(cur / b), 0);
-    const expected_cost_after_sell = b * Math.log(sum_exp_after_sell);
-    const expected_cost_after_sell_scaled = Math.round(expected_cost_after_sell * 1_000_000); // SCALE factor
-
-    console.log("Expected Cost After Selling (Scaled):", expected_cost_after_sell_scaled);
-
-    // Fetch user share account to verify shares burned
-    const sellerShareAccountInfoAfter = await splToken.getAccount(provider.connection, sellerShareAccount);
-    console.log("Seller's Share Token Account Info After Sell:", sellerShareAccountInfoAfter);
-
-    // Calculate the actual cost difference (refund)
     const userBalanceAfter = (await splToken.getAccount(provider.connection, userTokenAccount)).amount;
     const marketBalanceAfter = (await splToken.getAccount(provider.connection, marketTokenAccount)).amount;
 
-    console.log(`User balance before selling: ${userBalanceBefore}`);
-    console.log(`User balance after selling: ${userBalanceAfter}`);
-    console.log(`Market balance before selling: ${marketBalanceBefore}`);
-    console.log(`Market balance after selling: ${marketBalanceAfter}`);
-
-    const userBalanceDiff = userBalanceAfter - userBalanceBefore;
-    const marketBalanceDiff = marketBalanceAfter - marketBalanceBefore;
-    console.log(`User balance diff (refund received): ${userBalanceDiff}`);
-    console.log(`Market balance diff (refund paid): ${marketBalanceDiff}`);
-
-    // Calculate expected net refund (cost_difference - fee)
-    const cost_before_sell = calculate_cost(q_after_sell, b).unwrap();
-    const cost_before_sell_refund = cost_before_sell; // Already scaled
-    const fee_amount = calculate_fee(cost_before_sell_refund, 200).unwrap();
-    const reinvest_amount = Math.floor(fee_amount / 2);
-    const fee_recipient_amount = fee_amount - reinvest_amount;
-    const expected_net_refund = cost_before_sell_refund - fee_amount;
-
-    console.log("Expected Net Refund After Selling (Scaled):", expected_net_refund);
-    console.log("Actual Market Balance Diff (Refund):", marketBalanceDiff);
-
-    // Verify that shares were burned correctly
-    expect(sellerShareAccountInfoAfter.amount.toNumber()).toBe(sellerShareAccountInfoBefore.amount.toNumber() - 5);
-    console.log(`User's share account balance after selling: ${sellerShareAccountInfoAfter.amount.toNumber()}`);
-
-    // Verify user balance increased by net refund
+    // Assertions
     expect(userBalanceAfter).toBeGreaterThan(userBalanceBefore);
-    console.log(`User balance before selling: ${userBalanceBefore}, after selling: ${userBalanceAfter}`);
-
-    // Verify market balance decreased by net refund
     expect(marketBalanceAfter).toBeLessThan(marketBalanceBefore);
-    console.log(`Market balance before selling: ${marketBalanceBefore}, after selling: ${marketBalanceAfter}`);
 
-    // Assert that the marketMakerFunds and collectedFees have decreased/increased appropriately
-    expect(marketAccountAfter.market_maker_funds.toNumber()).toBeLessThan(marketAccountAfter.market_maker_funds.toNumber());
-    expect(marketAccountAfter.collected_fees.toNumber()).toBeGreaterThan(marketAccountAfter.collected_fees.toNumber());
-    expect(marketAccountAfter.outcomes[0].total_shares.toNumber()).toBe(5); // After selling 5 shares
+    console.log(`User balance before: ${userBalanceBefore}, after: ${userBalanceAfter}`);
+    console.log(`Market balance before: ${marketBalanceBefore}, after: ${marketBalanceAfter}`);
   });
-});
+
+  it("Can close the market after end time", async () => {
+    const currentClock = await client.getClock();
+    if (!context?.setClock) {
+      throw new Error("Bankrun context is not properly initialized.");
+    }
+
+
+    // Warp time forward to after the market's end time
+    const newTimestamp = currentClock.unixTimestamp + BigInt(4000);// Advance 4000 seconds
+    context.setClock(
+      new Clock(
+        currentClock.slot,
+        currentClock.epochStartTimestamp,
+        currentClock.epoch,
+        currentClock.leaderScheduleEpoch,
+        newTimestamp 
+      )
+    );
+
+    console.log("Time traveled to: ", newTimestamp);
+
+
+    const closeMarketTx = await marketProgram.methods
+      .closeMarket()
+      .accounts({
+        market: marketPDA,
+        oracle: oracle.publicKey, // The oracle is the user for this test
+      })
+      .signers([oracle])
+      .rpc();
+
+    console.log("Close Market Transaction Signature:", closeMarketTx);
+
+    // Fetch the updated market state
+    const updatedMarketAccount = await marketProgram.account.market.fetch(marketPDA);
+    console.log("Market Account After Closing:", updatedMarketAccount);
+
+    // Assertions
+    expect(updatedMarketAccount.marketClosed).toBe(true);
+  });
+
+  it("Can set the winning outcome after market is closed", async () => {
+   
+
+    // Set the winning outcome
+    const winningOutcomeIndex = 0; // Assume Outcome 0 is the winner
+    const setOutcomeTx = await marketProgram.methods
+      .setOutcome(new anchor.BN(winningOutcomeIndex))
+      .accounts({
+        market: marketPDA,
+        oracle: user.publicKey,
+      })
+      .signers([user])
+      .rpc();
+
+    console.log("Set Outcome Transaction Signature:", setOutcomeTx);
+
+    // Fetch the updated market state
+    const updatedMarketAccount = await marketProgram.account.market.fetch(marketPDA);
+    console.log("Market Account After Setting Outcome:", updatedMarketAccount);
+
+    // Assertions
+    expect(updatedMarketAccount.marketSettled).toBe(true);
+    expect(updatedMarketAccount.winningOutcome.toNumber()).toBe(winningOutcomeIndex);
+  });
+
+
 
 });
- */

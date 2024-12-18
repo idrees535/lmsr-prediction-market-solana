@@ -1,7 +1,6 @@
 use crate::constants::SHARES_DECIMALS;
 use crate::error::CustomError;
 use crate::state::market::Market;
-use crate::state::outcome;
 use crate::utils::{calculate_cost, calculate_fee};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;

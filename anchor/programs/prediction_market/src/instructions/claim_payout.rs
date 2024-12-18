@@ -1,26 +1,29 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer, Burn};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{self, Burn, MintTo, Token, TokenAccount, Transfer};
+use anchor_spl::token::{spl_token, Mint};
 use crate::state::market::Market;
-use crate::error::CustomError;
-use crate::constants::TOKEN_DECIMALS;
 use crate::constants::PAYOUT_PER_SHARE;
+use crate::error::CustomError;
 
 pub fn handler(
     ctx: Context<ClaimPayout>,
 ) -> Result<()> {
     let market = &mut ctx.accounts.market;
-
+    let user_share_account = &ctx.accounts.user_share_account;
+    let winning_outcome = market.winning_outcome;
+    
     // Validations
     require!(market.market_settled, CustomError::MarketNotSettled);
-    require!(market.winning_outcome < market.outcomes.len() as u64, CustomError::InvalidOutcome);
+    require!(winning_outcome < market.outcomes.len() as u64, CustomError::InvalidOutcome);
 
-    let outcome = &mut market.outcomes[market.winning_outcome as usize];
-    let user_shares = ctx.accounts.user_shares.amount;
+    let outcome = &mut market.outcomes[winning_outcome as usize];
+    let user_shares = user_share_account.amount;
 
     require!(user_shares > 0, CustomError::NoSharesToClaim);
 
     // Calculate payout
-    let payout = user_shares.checked_mul(market.PAYOUT_PER_SHARE).ok_or(CustomError::Overflow)?;
+    let payout = user_shares.checked_mul(PAYOUT_PER_SHARE).ok_or(CustomError::Overflow)?;
 
     // Ensure market has sufficient funds
     require!(market.market_maker_funds >= payout, CustomError::InsufficientFunds);
@@ -30,8 +33,8 @@ pub fn handler(
 
     // Burn user's shares
     let cpi_accounts = Burn {
-        mint: ctx.accounts.share_mint.to_account_info(),
-        from: ctx.accounts.user_shares.to_account_info(),
+        mint: ctx.accounts.outcome_mint.to_account_info(),
+        from: ctx.accounts.user_share_account.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -59,17 +62,17 @@ pub struct ClaimPayout<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    #[account(mut, has_one = base_token_mint)]
+    #[account(mut)]
     pub market_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(mut, has_one = market)]
-    pub share_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub outcome_mint: Account<'info, Mint>,
 
-    #[account(mut, has_one = share_mint)]
-    pub user_shares: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub user_share_account: Account<'info, TokenAccount>,
 
     pub user: Signer<'info>,
 
