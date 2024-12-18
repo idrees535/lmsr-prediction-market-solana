@@ -449,6 +449,53 @@ describe("Prediction Market", () => {
     expect(updatedMarketAccount.winningOutcome.toNumber()).toBe(winningOutcomeIndex);
   });
 
+  it("Can claim payout for winning shares", async () => {
+    const userSharesToClaim = 3; // User holds 10 shares of the winning outcome
+    const winningOutcomeIndex = 0; // Assume Outcome 0 is the winner
+    const totalPayoutperShare = 100; // Total payout per share
+    
+
+    const userShareAccountInfoBefore = await splToken.getAccount(provider.connection, userShareAccount);
+    const marketTokenAccountInfoBefore = await splToken.getAccount(provider.connection, marketTokenAccount);
+    const userTokenAccountInfoBefore = await splToken.getAccount(provider.connection, userTokenAccount);
+
+    console.log("User shares before claim:", userShareAccountInfoBefore.amount.toString());
+    console.log("Market funds before claim:", marketTokenAccountInfoBefore.amount.toString());
+    console.log("User tokens before claim:", userTokenAccountInfoBefore.amount.toString());
+
+    // Call claimPayout
+    const claimPayoutAccounts = {
+      market: marketPDA,
+      marketTokenAccount: marketTokenAccount,
+      userTokenAccount: userTokenAccount,
+      outcomeMint: outcomeMints[winningOutcomeIndex].publicKey,
+      userShareAccount: userShareAccount,
+      user: user.publicKey,
+      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+    };
+
+    await marketProgram.methods
+      .claimPayout()
+      .accounts(claimPayoutAccounts)
+      .signers([user])
+      .rpc();
+
+    // Fetch updated account states
+    const userShareAccountInfoAfter = await splToken.getAccount(provider.connection, userShareAccount);
+    const marketTokenAccountInfoAfter = await splToken.getAccount(provider.connection, marketTokenAccount);
+    const userTokenAccountInfoAfter = await splToken.getAccount(provider.connection, userTokenAccount);
+
+    console.log("User shares after claim:", userShareAccountInfoAfter.amount.toString());
+    console.log("Market funds after claim:", marketTokenAccountInfoAfter.amount.toString());
+    console.log("User tokens after claim:", userTokenAccountInfoAfter.amount.toString());
+
+    // Assertions
+    expect(Number(userShareAccountInfoAfter.amount)).toBe(Number(userShareAccountInfoBefore.amount) - userSharesToClaim);
+    //expect(Number(marketTokenAccountInfoAfter.amount)).toBe(Number(marketTokenAccountInfoBefore.amount) - totalPayout);
+    //expect(Number(userTokenAccountInfoAfter.amount)).toBe(Number(userTokenAccountInfoBefore.amount) + totalPayout);
+  });
+
+
 
 
 });

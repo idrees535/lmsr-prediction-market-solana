@@ -42,14 +42,24 @@ pub fn handler(
     token::burn(cpi_ctx, user_shares)?;
 
     // Transfer payout tokens to user
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.market_token_account.to_account_info(),
-        to: ctx.accounts.user_token_account.to_account_info(),
-        authority: ctx.accounts.market.to_account_info(),
-    };
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-    token::transfer(cpi_ctx, payout)?;
+    let market_id_bytes: [u8; 8] = market.market_id.to_le_bytes();
+    let seeds = &[b"market", &market_id_bytes[..], &[market.bump]];
+    let signer_seeds = &[&seeds[..]];
+
+    let refund_transfer_ctx = CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.market_token_account.to_account_info(),
+            to: ctx.accounts.user_token_account.to_account_info(),
+            authority: market.to_account_info(),
+        },
+        signer_seeds,
+    );
+    token::transfer(refund_transfer_ctx, payout)?;
+    msg!(
+        "Transferred {} tokens from market to user's account",
+        payout
+    );
 
     // Emit event
     msg!("Payout Claimed: {} tokens to user", payout);
