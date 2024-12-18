@@ -22,6 +22,8 @@ describe("Prediction Market", () => {
   let oracle: Keypair;
   let context: any;
   let client: any;
+  let feeRecipient:Keypair;
+  let feeRecipientTokenAccount: PublicKey;
 
   // Setup: Run once before all tests
   beforeAll(async () => {
@@ -32,6 +34,9 @@ describe("Prediction Market", () => {
 
     user = Keypair.generate();
     oracle= Keypair.generate();
+    baseTokenMint = Keypair.generate();
+    feeRecipient = Keypair.generate();
+
     context = await startAnchor("", [
       {
         name: 'prediction_market',
@@ -41,7 +46,7 @@ describe("Prediction Market", () => {
         {
           address: user.publicKey,
           info: {
-            lamports: 1_000_000_000, // 1 SOL equivalent
+            lamports: 1_000_000_00000000, // 1 SOL equivalent
             data: Buffer.alloc(0),
             owner: SystemProgram.programId,
             executable: false,
@@ -54,7 +59,7 @@ describe("Prediction Market", () => {
     marketProgram = new Program<PredictionMarket>(IDL, provider);
 
     // Create base token mint for the market
-    baseTokenMint = Keypair.generate();
+    
     const transaction = new Transaction().add(
       SystemProgram.createAccount({
         fromPubkey: user.publicKey,
@@ -119,6 +124,7 @@ describe("Prediction Market", () => {
     const OutcomemintInfo_before = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
     console.log("Outcome Mint Info before:", OutcomemintInfo_before);
 
+
     const remainingAccounts = outcomeMints.map((mint) => ({
       pubkey: mint.publicKey,
       isWritable: true,
@@ -140,11 +146,11 @@ describe("Prediction Market", () => {
         new anchor.BN(12345),           // market_id
         "My Test Market",               // title
         ["Outcome1", "Outcome2"],       // outcomes
-        oracle.publicKey,                 // dummy oracle
+        oracle.publicKey,                 
         new anchor.BN(700),               // b
         new anchor.BN(3600),            // duration (1 hour)
         new anchor.BN(2),               // fee_percent
-        user.publicKey,                 // fee_recipient dummy
+        feeRecipient.publicKey,                 
         new anchor.BN(1000)             // initial_funds
       )
       .accounts(marketAccounts)
@@ -154,6 +160,11 @@ describe("Prediction Market", () => {
 
     const OutcomemintInfo_after = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
     console.log("Outcome Mint Info after:", OutcomemintInfo_after);
+
+      //Create accounts
+  
+    
+
   });
   
 
@@ -343,7 +354,7 @@ describe("Prediction Market", () => {
     
   });
 
-  // Test 3: Sell Shares
+  // Test 2: Sell Shares
   it("Can sell shares", async () => {
     const sell_outcome_index = 0;
     const outcomeMint = outcomeMints[sell_outcome_index];
@@ -494,6 +505,87 @@ describe("Prediction Market", () => {
     //expect(Number(marketTokenAccountInfoAfter.amount)).toBe(Number(marketTokenAccountInfoBefore.amount) - totalPayout);
     //expect(Number(userTokenAccountInfoAfter.amount)).toBe(Number(userTokenAccountInfoBefore.amount) + totalPayout);
   });
+
+  it("Can withdraw fees", async () => {
+
+    feeRecipientTokenAccount = await splToken.getAssociatedTokenAddress(
+      baseTokenMint.publicKey,
+      feeRecipient.publicKey
+    );
+
+    // Create fee recipient's token account if it doesn't exist
+    const createFeeRecipientATATx = new Transaction().add(
+      splToken.createAssociatedTokenAccountInstruction(
+        user.publicKey, // Payer
+        feeRecipientTokenAccount, // Associated Token Account to create
+        feeRecipient.publicKey, // Owner of the account
+        baseTokenMint.publicKey // Mint address
+      )
+    );
+
+    if (provider.sendAndConfirm) {
+      await provider.sendAndConfirm(createFeeRecipientATATx, [user]);
+    }
+    console.log("Fee recipient's ATA created:", feeRecipientTokenAccount.toBase58());
+    
+    // Ensure the market has collected fees
+    const marketAccountBefore = await marketProgram.account.market.fetch(marketPDA);
+    console.log("Market Account Before Withdrawal:", marketAccountBefore);
+    const feesToWithdraw = marketAccountBefore.collectedFees.toNumber();
+    //expect(feesToWithdraw).toBeGreaterThan(0);
+
+    const marketTokenAccountInfoBefore = await splToken.getAccount(
+      provider.connection,
+      marketTokenAccount
+    );
+    const feeRecipientTokenAccountInfoBefore = await splToken.getAccount(
+      provider.connection,
+      feeRecipientTokenAccount
+    );
+
+    console.log("Market Token Account Before Withdrawal:", marketTokenAccountInfoBefore.amount.toString());
+    console.log("Fee Recipient Token Account Before Withdrawal:", feeRecipientTokenAccountInfoBefore.amount.toString());
+
+    // Call withdrawFees
+    const withdrawFeesAccounts = {
+      market: marketPDA,
+      marketTokenAccount: marketTokenAccount,
+      feeRecipientTokenAccount: feeRecipientTokenAccount,
+      feeRecipient: feeRecipient.publicKey,
+      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+    };
+
+    await marketProgram.methods
+      .withdrawFees()
+      .accounts(withdrawFeesAccounts)
+      .signers([feeRecipient])
+      .rpc();
+
+    // Fetch updated account states
+    const marketAccountAfter = await marketProgram.account.market.fetch(marketPDA);
+    const marketTokenAccountInfoAfter = await splToken.getAccount(
+      provider.connection,
+      marketTokenAccount
+    );
+    const feeRecipientTokenAccountInfoAfter = await splToken.getAccount(
+      provider.connection,
+      feeRecipientTokenAccount
+    );
+
+    console.log("Market Account After Withdrawal:", marketAccountAfter);
+    console.log("Market Token Account After Withdrawal:", marketTokenAccountInfoAfter.amount.toString());
+    console.log("Fee Recipient Token Account After Withdrawal:", feeRecipientTokenAccountInfoAfter.amount.toString());
+
+    // Assertions
+    //expect(marketAccountAfter.collectedFees.toNumber()).toBe(0);
+    expect(Number(marketTokenAccountInfoAfter.amount)).toBe(
+      Number(marketTokenAccountInfoBefore.amount) - feesToWithdraw
+    );
+    expect(Number(feeRecipientTokenAccountInfoAfter.amount)).toBe(
+      Number(feeRecipientTokenAccountInfoBefore.amount) + feesToWithdraw
+    );
+  });
+
 
 
 

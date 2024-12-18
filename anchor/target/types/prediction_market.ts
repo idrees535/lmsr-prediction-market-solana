@@ -766,6 +766,42 @@ export type PredictionMarket = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdrawFees",
+      "discriminator": [
+        198,
+        212,
+        171,
+        109,
+        144,
+        215,
+        174,
+        89
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "marketTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "feeRecipientTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "feeRecipient",
+          "signer": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [

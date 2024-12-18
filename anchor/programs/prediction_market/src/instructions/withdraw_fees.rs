@@ -14,19 +14,26 @@ pub fn handler(
     let fees = market.collected_fees;
     require!(fees > 0, CustomError::NoFeesToWithdraw);
 
-    // Reset collected fees
-    market.collected_fees = 0;
+    // Transfer payout tokens to user
+    let market_id_bytes: [u8; 8] = market.market_id.to_le_bytes();
+    let seeds = &[b"market", &market_id_bytes[..], &[market.bump]];
+    let signer_seeds = &[&seeds[..]];
 
-    // Transfer fees to fee recipient
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.market_token_account.to_account_info(),
-        to: ctx.accounts.fee_recipient_token_account.to_account_info(),
-        authority: ctx.accounts.market.to_account_info(),
-    };
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-    token::transfer(cpi_ctx, fees)?;
-
+    let refund_transfer_ctx = CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.market_token_account.to_account_info(),
+            to: ctx.accounts.fee_recipient_token_account.to_account_info(),
+            authority: market.to_account_info(),
+        },
+        signer_seeds,
+    );
+    token::transfer(refund_transfer_ctx, fees)?;
+    msg!(
+        "Transferred {} tokens from market to fee recipients's token  account",
+        fees
+    );
+    
     // Emit event
     msg!("Fees Withdrawn: {} tokens to fee recipient", fees);
 
@@ -38,7 +45,7 @@ pub struct WithdrawFees<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    #[account(mut, has_one = base_token_mint)]
+    #[account(mut)]
     pub market_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]

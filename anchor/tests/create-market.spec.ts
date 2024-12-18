@@ -40,7 +40,7 @@ it("should pass", () => {
 //   const provider = new BankrunProvider(context);
 
 //   const marketProgram = new Program<PredictionMarket>(IDL, provider);
-  
+
 //   // Create base token mint manually as the above code is not working and it is fucking up with bankrun connection
 //   const baseTokenMint = Keypair.generate();
 //   const transaction = new Transaction().add(
@@ -59,7 +59,7 @@ it("should pass", () => {
 //     )
 //   );
 
-  
+
 //   // Use BankrunProvider's sendAndConfirm method
 //   if (provider.sendAndConfirm) {
 //     await provider.sendAndConfirm(transaction, [user, baseTokenMint]);
@@ -80,7 +80,7 @@ it("should pass", () => {
 //   console.log("Base Token Mint Public Key:", baseTokenMint.publicKey.toBase58());
 
 
-  
+
 //   // Create outcome mints
 //   const outcomes = ["Outcome1", "Outcome2"];
 //   const outcomeMints = await Promise.all(
@@ -271,7 +271,30 @@ it("Cannot set an invalid outcome index", async () => {
   }).rejects.toThrow("Invalid outcome index");
 });
 
-  */
+  
+it("Cannot withdraw fees with unauthorized recipient", async () => {
+  const unauthorizedUser = Keypair.generate();
+
+  await expect(async () => {
+    await marketProgram.methods
+      .withdrawFees()
+      .accounts({
+        market: marketPDA,
+        marketTokenAccount: marketTokenAccount,
+        feeRecipientTokenAccount: await splToken.getAssociatedTokenAddress(
+          baseTokenMint.publicKey,
+          unauthorizedUser.publicKey
+        ),
+        feeRecipient: unauthorizedUser.publicKey,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      })
+      .signers([unauthorizedUser])
+      .rpc();
+  }).rejects.toThrow("Unauthorized");
+});
+
+
+*/
 
 
 

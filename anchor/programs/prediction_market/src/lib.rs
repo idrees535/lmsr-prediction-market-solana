@@ -64,15 +64,8 @@ pub mod prediction_market {
     pub fn claim_payout(ctx: Context<ClaimPayout>) -> Result<()> {
         instructions::claim_payout::handler(ctx)
     }
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>) -> Result<()> {
+        instructions::withdraw_fees::handler(ctx)
+    }
 }
 
-/*
-
-    pub fn set_outcome(ctx: Context<SetOutcome>, outcome: u8) -> Result<()> {
-
-    }
-
-    pub fn withdraw_fees(ctx: Context<WithdrawFees>) -> Result<()> {
-
-    }
-*/
