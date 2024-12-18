@@ -24,6 +24,8 @@ describe("Prediction Market", () => {
   let client: any;
   let feeRecipient:Keypair;
   let feeRecipientTokenAccount: PublicKey;
+  let shares_bought = 500;
+  let shares_sold = 100;
 
   // Setup: Run once before all tests
   beforeAll(async () => {
@@ -307,7 +309,7 @@ describe("Prediction Market", () => {
 
     // Call the buy_shares function
     const buySharesTx = await marketProgram.methods
-      .buyShares(new anchor.BN(buy_outcome_index), new anchor.BN(10)) // Buying 10 shares of Outcome 0
+      .buyShares(new anchor.BN(buy_outcome_index), new anchor.BN(shares_bought)) // Buying 10 shares of Outcome 0
       .accounts(buySharesAccounts)
       .signers([user])
       .rpc();
@@ -342,15 +344,15 @@ describe("Prediction Market", () => {
     // Add assertions to verify updates
     expect(marketAccount1.marketMakerFunds.toNumber()).toBeGreaterThan(0);
     expect(marketAccount1.collectedFees.toNumber()).toBeGreaterThan(0);
-    expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(10);
+    expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(shares_bought);
 
     //let's check the user's share account
     const userShareAccountInfo_after = await splToken.getAccount(provider.connection, userShareAccount);
     console.log("User's Share Token Account Info After Buy:", userShareAccountInfo_after);
-    expect(Number(userShareAccountInfo_after.amount)).toBe(10);
+    expect(Number(userShareAccountInfo_after.amount)).toBe(shares_bought);
     //let's also first print and then check total outcome shares
     console.log("Total Shares for Outcome 0:", marketAccount1.outcomes[0].totalShares.toNumber());
-    expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(10);
+    expect(marketAccount1.outcomes[0].totalShares.toNumber()).toBe(shares_bought);
     
   });
 
@@ -376,7 +378,7 @@ describe("Prediction Market", () => {
 
     // Call the sell_shares function
     const sellSharesTx = await marketProgram.methods
-      .sellShares(new anchor.BN(sell_outcome_index), new anchor.BN(7)) // Selling 5 shares of Outcome 0
+      .sellShares(new anchor.BN(sell_outcome_index), new anchor.BN(shares_sold)) // Selling 5 shares of Outcome 0
       .accounts(sellSharesAccounts)
       .signers([user])
       .rpc();
@@ -461,7 +463,7 @@ describe("Prediction Market", () => {
   });
 
   it("Can claim payout for winning shares", async () => {
-    const userSharesToClaim = 3; // User holds 10 shares of the winning outcome
+    const userSharesToClaim = shares_bought-shares_sold; // User holds 10 shares of the winning outcome
     const winningOutcomeIndex = 0; // Assume Outcome 0 is the winner
     const totalPayoutperShare = 100; // Total payout per share
     

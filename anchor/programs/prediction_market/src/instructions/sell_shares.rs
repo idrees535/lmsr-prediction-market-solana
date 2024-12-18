@@ -1,14 +1,12 @@
 // src/instructions/sell_shares.rs
 
-use crate::constants::SHARES_DECIMALS;
 use crate::error::CustomError;
 use crate::state::market::Market;
 use crate::utils::{calculate_cost, calculate_fee};
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::Mint;
-use anchor_spl::token::{self, Burn, Token, TokenAccount, Transfer};
-use anchor_spl::token_2022::spl_token_2022::extension::confidential_transfer::instruction;
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+
 
 pub fn handler(ctx: Context<SellShares>, outcome_index: u64, num_shares: u64) -> Result<()> {
     let market = &mut ctx.accounts.market;

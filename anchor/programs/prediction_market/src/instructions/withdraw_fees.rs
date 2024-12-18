@@ -13,6 +13,7 @@ pub fn handler(
 
     let fees = market.collected_fees;
     require!(fees > 0, CustomError::NoFeesToWithdraw);
+    msg!("Fees to withdraw: {}", fees);
 
     // Transfer payout tokens to user
     let market_id_bytes: [u8; 8] = market.market_id.to_le_bytes();

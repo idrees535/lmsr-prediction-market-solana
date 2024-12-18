@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{self, Burn, MintTo, Token, TokenAccount, Transfer};
-use anchor_spl::token::{spl_token, Mint};
+use anchor_spl::token::{self, Burn, Token, TokenAccount, Transfer};
+use anchor_spl::token:: Mint;
 use crate::state::market::Market;
 use crate::constants::PAYOUT_PER_SHARE;
 use crate::error::CustomError;

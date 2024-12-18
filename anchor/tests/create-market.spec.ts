@@ -1,13 +1,13 @@
-import * as anchor from '@coral-xyz/anchor';
-import { BankrunProvider, startAnchor } from "anchor-bankrun";
-import { Program} from '@coral-xyz/anchor';
-import { SystemProgram, Keypair, Transaction, PublicKey, sendAndConfirmTransaction } from '@solana/web3.js';
-import { PredictionMarket } from '../target/types/prediction_market';
-import * as splToken from '@solana/spl-token';
+// import * as anchor from '@coral-xyz/anchor';
+// import { BankrunProvider, startAnchor } from "anchor-bankrun";
+// import { Program} from '@coral-xyz/anchor';
+// import { Keypair, Transaction, PublicKey, sendAndConfirmTransaction } from '@solana/web3.js';
+// import { PredictionMarket } from '../target/types/prediction_market';
+// import * as splToken from '@solana/spl-token';
 
 
-const IDL = require('../target/idl/prediction_market.json');
-const marketAddress = new PublicKey("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
+// const IDL = require('../target/idl/prediction_market.json');
+// const marketAddress = new PublicKey("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
 
 describe("Prediction Market", () => {
 //let's write a dummy test which does nothing

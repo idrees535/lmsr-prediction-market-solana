@@ -5,8 +5,7 @@ use crate::utils::{calculate_cost, calculate_fee};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, MintTo, Token, TokenAccount, Transfer};
-use anchor_spl::token::{spl_token, Mint};
-//use crate::state::outcome::Outcome;
+use anchor_spl::token::Mint;
 
 pub fn handler(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> Result<()> {
     let market = &mut ctx.accounts.market;

@@ -1,4 +1,7 @@
 Implement calcualte cost/fee helper fucntions
+Verifiy teh fee and payout calualtions
+Check decimals of the callcualtions 
+What will happen to the remianing funds in the market?
 Initial funds transfer to market while cretaing market=b ln(n)
 
 Somewhere outcome mint is being initaizled with random mint authority other than market, due to which InalidMintAuth check fails in buyshares, if buyer_share_accout is decalred in BuyShares context with init_if_needed, this shouldn't happen, with it is happening
