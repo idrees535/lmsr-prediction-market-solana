@@ -4,6 +4,7 @@ use anchor_spl::token:: Mint;
 use crate::state::market::Market;
 use crate::constants::PAYOUT_PER_SHARE;
 use crate::error::CustomError;
+use crate::constants::SHARES_DECIMALS;
 
 pub fn handler(
     ctx: Context<ClaimPayout>,
@@ -21,8 +22,12 @@ pub fn handler(
 
     require!(user_shares > 0, CustomError::NoSharesToClaim);
 
+    let adjusted_shares = user_shares
+    .checked_div(10u64.pow(SHARES_DECIMALS as u32))
+    .ok_or(CustomError::MathError)?;
+
     // Calculate payout
-    let payout = user_shares.checked_mul(PAYOUT_PER_SHARE).ok_or(CustomError::Overflow)?;
+    let payout = adjusted_shares.checked_mul(PAYOUT_PER_SHARE).ok_or(CustomError::Overflow)?;
 
     // Ensure market has sufficient funds
     require!(market.market_maker_funds >= payout, CustomError::InsufficientFunds);

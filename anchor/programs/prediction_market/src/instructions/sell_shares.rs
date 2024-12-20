@@ -64,25 +64,18 @@ pub fn handler(ctx: Context<SellShares>, outcome_index: u64, num_shares: u64) ->
     let net_refund: u64 = refund_amount
         .checked_sub(fee_amount)
         .ok_or(CustomError::Overflow)?;
+
     msg!("Fee Amount: {}", fee_amount);
     msg!("Reinvest Amount: {}", reinvest_amount);
     msg!("Fee Recipient Amount: {}", fee_recipient_amount);
+    msg!("Total Refund Amount: {}", refund_amount);
     msg!("Net Refund (Cost - Fee): {}", net_refund);
-    msg!(
-        "User share balance before: {}, in user share account: {}",
-        buyer_share_account.amount,
-        buyer_share_account.key()
-    );
+
 
     // Burn shares from user's account
     let market_id_bytes: [u8; 8] = market.market_id.to_le_bytes();
     let seeds = &[b"market", &market_id_bytes[..], &[market.bump]];
     let signer_seeds = &[&seeds[..]];
-    msg!("Burn operation initiated by: {}", ctx.accounts.seller.key());
-    msg!(
-        "Mint authority for outcome_mint: {:?}",
-        outcome_mint.mint_authority.unwrap()
-    );
 
 
     let burn_ctx = CpiContext::new(
@@ -95,8 +88,8 @@ pub fn handler(ctx: Context<SellShares>, outcome_index: u64, num_shares: u64) ->
     );
     token::burn(burn_ctx, num_shares)?;
 
-    let updated_buyer_share_account = token::accessor::amount(&buyer_share_account.to_account_info())?;
-    msg!("Updated user_share_balance: {}", updated_buyer_share_account);
+    //let updated_buyer_share_account = token::accessor::amount(&buyer_share_account.to_account_info())?;
+
 
     msg!("Burned {} shares from user's account", num_shares);
 

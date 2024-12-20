@@ -8,6 +8,9 @@ import * as splToken from '@solana/spl-token';
 
 const IDL = require('../target/idl/prediction_market.json');
 const marketAddress = new PublicKey("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
+//let's import token decimals from constant.rs
+const TOKEN_DECIMALS = 9;
+const SHARE_DECIMALS = 0;
 
 describe("Prediction Market", () => {
   let provider: BankrunProvider;
@@ -24,8 +27,11 @@ describe("Prediction Market", () => {
   let client: any;
   let feeRecipient:Keypair;
   let feeRecipientTokenAccount: PublicKey;
-  let shares_bought = 500;
-  let shares_sold = 100;
+  //;lets scale sahrees bought sold to to decimals precison 500*10^9
+  let shares_bought = 5000 * Math.pow(10, SHARE_DECIMALS);
+  let shares_sold = 1000* Math.pow(10, SHARE_DECIMALS);
+  let fee_percent = 100; // 1% fee in basis point
+
 
   // Setup: Run once before all tests
   beforeAll(async () => {
@@ -72,7 +78,7 @@ describe("Prediction Market", () => {
       }),
       splToken.createInitializeMintInstruction(
         baseTokenMint.publicKey,
-        2, // Decimals
+        TOKEN_DECIMALS, // Decimals
         user.publicKey, // Mint authority
         null // Freeze authority
       )
@@ -172,7 +178,7 @@ describe("Prediction Market", () => {
         baseTokenMint.publicKey,
         userTokenAccount,
         user.publicKey,
-        1000000000000000
+        100000 * Math.pow(10, TOKEN_DECIMALS) // Mint 0.1M tokens
       )
     );
     if (provider.sendAndConfirm) {
@@ -209,11 +215,11 @@ describe("Prediction Market", () => {
         "My Test Market",               // title
         ["Outcome1", "Outcome2"],       // outcomes
         oracle.publicKey,                 
-        new anchor.BN(700),               // b
+        new anchor.BN(1000),               // b
         new anchor.BN(3600),            // duration (1 hour)
-        new anchor.BN(2),               // fee_percent
+        new anchor.BN(fee_percent),               // fee_percent
         feeRecipient.publicKey,                 
-        new anchor.BN(1000)             // initial_funds
+        new anchor.BN(694*Math.pow(10,TOKEN_DECIMALS))             // b.ln (n)
       )
       .accounts(marketAccounts)
       .remainingAccounts(remainingAccounts)
@@ -223,9 +229,6 @@ describe("Prediction Market", () => {
     const OutcomemintInfo_after = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
     console.log("Outcome Mint Info after:", OutcomemintInfo_after);
 
-      //Create accounts
-  
-    
 
   });
   

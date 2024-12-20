@@ -1,4 +1,4 @@
-use crate::constants::SHARES_DECIMALS;
+use crate::constants::{SHARES_DECIMALS, TOKEN_DECIMALS};
 use crate::error::CustomError;
 use crate::state::market::Market;
 use crate::utils::{calculate_cost, calculate_fee};
@@ -54,18 +54,24 @@ pub fn handler(ctx: Context<BuyShares>, outcome_index: u64, num_shares: u64) -> 
     let cost_after = calculate_cost(&q_after, market.b)?;
 
     // Cost difference
-    let cost_difference = cost_after
+    let cost = cost_after
         .checked_sub(cost_before)
         .ok_or(CustomError::MathError)?;
 
     // Scale cost difference
-    let cost: u64 = (cost_difference as u128 * 10u128.pow(SHARES_DECIMALS)) as u64; // Adjust scaling as needed
+    //let cost: u64 = (cost_difference as u128 * 10u128.pow(TOKEN_DECIMALS)) as u64; // Adjust scaling as needed
 
     // Calculate fee
     let fee_amount: u64 = calculate_fee(cost, market.fee_percent)?;
     let reinvest_amount: u64 = fee_amount / 2;
     let fee_recipient_amount: u64 = fee_amount - reinvest_amount;
     let net_cost: u64 = cost.checked_add(fee_amount).ok_or(CustomError::Overflow)?;
+
+    msg!("Fee Amount: {}", fee_amount);
+    msg!("Reinvest Amount: {}", reinvest_amount);
+    msg!("Fee Recipient Amount: {}", fee_recipient_amount);
+    msg!("Gross Cost: {}", cost);
+    msg!("Total Cost (Cost + Fee): {}", net_cost);
 
 
     // Transfer tokens from buyer to market
