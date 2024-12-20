@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, spl_token, InitializeMint, Token};
+
+use anchor_spl::token::{self, spl_token,InitializeMint, Token, TokenAccount, Transfer};
+use anchor_spl::associated_token::AssociatedToken;
+
 //use anchor_spl::token_interface::Mint;
 use crate::constants::SHARES_DECIMALS;
 use crate::error::CustomError;
@@ -114,6 +117,17 @@ pub fn handler<'info>(
             mint: outcome_mint.key(),
         });
     }
+    //
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.user_token_account.to_account_info(),
+        to: ctx.accounts.market_token_account.to_account_info(),
+        authority: ctx.accounts.user.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    token::transfer(cpi_ctx, initial_funds)?;
+
+    msg!("Transferred {} initial funds to market's token account", initial_funds);
 
     Ok(())
 }
@@ -136,9 +150,26 @@ pub struct CreateMarket<'info> {
     #[account(mint::token_program=token_program)]
     pub base_token_mint: Account<'info, Mint>,
 
+    #[account(
+        mut,
+        associated_token::mint = base_token_mint,
+        associated_token::authority = user
+    )]
+    pub user_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        //mut,
+        init_if_needed,
+        payer = user,
+        associated_token::mint = base_token_mint,
+        associated_token::authority = market
+    )]
+    pub market_token_account: Account<'info, TokenAccount>,
+
     #[account(address = anchor_lang::solana_program::system_program::ID)]
     pub system_program: Program<'info, System>,
 
     pub token_program: Program<'info, Token>,
+     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
 }

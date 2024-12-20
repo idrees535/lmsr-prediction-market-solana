@@ -126,6 +126,64 @@ describe("Prediction Market", () => {
     const OutcomemintInfo_before = await splToken.getMint(provider.connection, outcomeMints[0].publicKey);
     console.log("Outcome Mint Info before:", OutcomemintInfo_before);
 
+    userTokenAccount = await splToken.getAssociatedTokenAddress(
+      baseTokenMint.publicKey,
+      user.publicKey
+    );
+
+    console.log("Derived User Token Account Address:", userTokenAccount.toBase58());
+    const createUserATATx = new Transaction().add(
+      splToken.createAssociatedTokenAccountInstruction(
+        user.publicKey,         // Payer
+        userTokenAccount,       // Associated Token Account to create
+        user.publicKey,         // Owner of the account
+        baseTokenMint.publicKey // Mint address
+      )
+    );
+
+    if (provider.sendAndConfirm) {
+      await provider.sendAndConfirm(createUserATATx, [user]);
+    }
+    console.log("Craeted User's ATA:", userTokenAccount.toBase58())
+
+
+    marketTokenAccount = await splToken.getAssociatedTokenAddress(
+      baseTokenMint.publicKey,
+      marketPDA,
+      true // Allow off-curve PDA
+    );
+    console.log("Derived Market Token Account Address:", marketTokenAccount.toBase58());
+
+    const createMarketATATx = new Transaction().add(
+      splToken.createAssociatedTokenAccountInstruction(
+        user.publicKey,         // Payer
+        marketTokenAccount,       // Associated Token Account to create
+        marketPDA,        // Owner of the account
+        baseTokenMint.publicKey // Mint address
+      )
+    );
+
+    if (provider.sendAndConfirm) {
+      await provider.sendAndConfirm(createMarketATATx, [user]);
+    }
+
+    const mintTx = new anchor.web3.Transaction().add(
+      splToken.createMintToInstruction(
+        baseTokenMint.publicKey,
+        userTokenAccount,
+        user.publicKey,
+        1000000000000000
+      )
+    );
+    if (provider.sendAndConfirm) {
+      await provider.sendAndConfirm(mintTx, [user]);
+    }
+
+    console.log("Minted tokens to buyer's ATT");
+    const userAccountInfo_after = await splToken.getAccount(provider.connection, userTokenAccount);
+    console.log("User Token Account Info:", userAccountInfo_after);
+
+
 
     const remainingAccounts = outcomeMints.map((mint) => ({
       pubkey: mint.publicKey,
@@ -138,6 +196,8 @@ describe("Prediction Market", () => {
       market: marketPDA,
       user: user.publicKey,
       baseTokenMint: baseTokenMint.publicKey,
+      userTokenAccount: userTokenAccount,
+      marketTokenAccount: marketTokenAccount,
       systemProgram: anchor.web3.SystemProgram.programId,
       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -177,46 +237,7 @@ describe("Prediction Market", () => {
     console.log("OutcomemintInfo_before_buy:", OutcomemintInfo_before_buy);
 
     console.log("Base Token Mint Address:", baseTokenMint.publicKey.toBase58());
-    userTokenAccount = await splToken.getAssociatedTokenAddress(
-      baseTokenMint.publicKey,
-      user.publicKey
-    );
-
-    console.log("Derived User Token Account Address:", userTokenAccount.toBase58());
-    const createUserATATx = new Transaction().add(
-      splToken.createAssociatedTokenAccountInstruction(
-        user.publicKey,         // Payer
-        userTokenAccount,       // Associated Token Account to create
-        user.publicKey,         // Owner of the account
-        baseTokenMint.publicKey // Mint address
-      )
-    );
-
-      if (provider.sendAndConfirm) {
-        await provider.sendAndConfirm(createUserATATx, [user]);
-      }
-      console.log("Craeted User's ATA:", userTokenAccount.toBase58())
     
-        
-    marketTokenAccount = await splToken.getAssociatedTokenAddress(
-      baseTokenMint.publicKey,
-      marketPDA,
-      true // Allow off-curve PDA
-    );
-    console.log("Derived Market Token Account Address:", marketTokenAccount.toBase58());
-
-    const createMarketATATx = new Transaction().add(
-      splToken.createAssociatedTokenAccountInstruction(
-        user.publicKey,         // Payer
-        marketTokenAccount,       // Associated Token Account to create
-        marketPDA,        // Owner of the account
-        baseTokenMint.publicKey // Mint address
-      )
-    );
-
-    if (provider.sendAndConfirm) {
-      await provider.sendAndConfirm(createMarketATATx, [user]);
-    }
     console.log("Craeted market's ATA:", marketTokenAccount.toBase58())
 
     // Mint tokens to the user's associated token account
@@ -228,34 +249,6 @@ describe("Prediction Market", () => {
 
     const marketAccountInfo = await splToken.getAccount(provider.connection, marketTokenAccount);
     console.log("Market Token Account Info:", marketAccountInfo);
-
-     const mintTx = new anchor.web3.Transaction().add(
-       splToken.createMintToInstruction(
-         baseTokenMint.publicKey,
-         userTokenAccount,
-         user.publicKey,
-         1000000000000000
-       )
-     );
-     if (provider.sendAndConfirm) {
-       await provider.sendAndConfirm(mintTx, [user]);
-     }
-
-    console.log("Minted tokens to buyer's ATT");
-    const userAccountInfo_after = await splToken.getAccount(provider.connection, userTokenAccount);
-    console.log("User Token Account Info:", userAccountInfo_after);
-
-    const transferTx = new anchor.web3.Transaction().add(
-      splToken.createTransferInstruction(
-        userTokenAccount,
-        marketTokenAccount,
-        user.publicKey,
-        500
-      )
-    );
-    if (provider.sendAndConfirm) {
-      await provider.sendAndConfirm(transferTx, [user]);
-    }
 
     console.log("Transfer tokens to market's ATA");
     const marketAccountInfo_after = await splToken.getAccount(provider.connection, marketTokenAccount);
