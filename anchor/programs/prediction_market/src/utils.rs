@@ -39,24 +39,6 @@ pub fn calculate_cost(q: &Vec<u64>, b: u64) -> Result<u64> {
 }
 
 
-/// Calculates the cost based on LMSR formula
-// pub fn calculate_cost(q: &Vec<u64>, b: u64) -> Result<u64> {
-//     // Use a fixed-point multiplier to simulate exponentiation.
-//     let mut sum = 0u64;
-
-//     for &qi in q.iter() {
-//         // Calculate e^(q_i / b) using fixed-point arithmetic.
-//         let exponent = (qi as f64) / (b as f64); // q_i / b
-//         let cost_for_outcome = (exponent.exp() * SCALE as f64).round() as u64; // e^(q_i / b) * SCALE
-//         sum = sum.checked_add(cost_for_outcome).ok_or(CustomError::Overflow)?;
-//     }
-
-//     // Multiply by b (after scaling).
-//     let total_cost = sum.checked_mul(b).ok_or(CustomError::Overflow)?;
-
-//     // Return the total cost, considering the scale.
-//     Ok(total_cost / SCALE)
-// }
 
 
 /// Calculates the fee based on cost and fee percent
