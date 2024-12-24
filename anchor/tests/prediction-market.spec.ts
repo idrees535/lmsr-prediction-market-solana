@@ -7,7 +7,7 @@ import { PredictionMarket } from '../target/types/prediction_market';
 import * as splToken from '@solana/spl-token';
 
 const IDL = require('../target/idl/prediction_market.json');
-const marketAddress = new PublicKey("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
+const marketAddress = new PublicKey("AeHTqTh19seFqLVKvbrkEhgCJEzUWPJu2vxYppdoj6BL");
 //let's import token decimals from constant.rs
 const TOKEN_DECIMALS = 9;
 const SHARE_DECIMALS = 0;

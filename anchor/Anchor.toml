@@ -5,14 +5,14 @@ anchor_version = "0.30.1"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-prediction_market = "AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ"
+[programs.devnet]
+prediction_market = "AeHTqTh19seFqLVKvbrkEhgCJEzUWPJu2vxYppdoj6BL"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -24,7 +24,6 @@ shutdown_wait = 2000
 upgradeable = false
 
 [test.validator]
-use_bankrun = true
 bind_address = "127.0.0.1"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
